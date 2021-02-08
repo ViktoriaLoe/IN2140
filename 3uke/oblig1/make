@@ -1,0 +1,16 @@
+BIN = oppgave1 oppgave2 
+CFLAGS =  -std=gnu11 -g -Wall -Wextra 
+
+all: $(BIN)
+
+oppgave1: oppgave1.c 
+    gcc $(CFLAGS) oppgave1.c oppgave1
+
+oppgave2:  oppgave2main.c oppgave2.c
+    gcc oppgave2.c oppgave2main.c -o oppgave2 
+
+run: $(BIN)
+    ./$(BIN)
+
+clean:
+	rm -f ./$(BIN)

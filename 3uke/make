@@ -1,0 +1,13 @@
+CFLAGS = -std=gnu11 -g -Wall -Wextra 
+BIN = test hello
+
+all: $(BIN) 
+
+test: test.c 
+    gcc $(CFLAGS) test.c -o test
+
+hello: hello.c funk.c
+    gcc $(CFLAGS) hello.c funk.c -o greet
+
+clean:
+    rm -f $(BIN) 
