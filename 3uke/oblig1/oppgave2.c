@@ -2,15 +2,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "oppgave2a.h"
+
+int stringsum(char *s);
+
+void stringsum2(char *s, int *res)
+{
+    *res = stringsum(s); 
+}
+
+
+
 
 //oppgave 2 d)
 char *string_between(char *s, char c)
 {
-    char *nyStreng = malloc(strlen(s) + 1); 
+    char *nyStreng = malloc(strlen(s)); 
     char *peker = nyStreng; 
 
-    int antForkomster = 0; 
+    int antForkomster = 0;  
     while(*s)
     {
         if (*s == c)
@@ -18,6 +27,7 @@ char *string_between(char *s, char c)
             antForkomster++;
             if (antForkomster == 2)
             {
+                *(peker) = '\0';
                 return nyStreng;
             }
         }
@@ -33,6 +43,7 @@ char *string_between(char *s, char c)
 
     if (antForkomster < 2) //hvis det ikke var nok forekomster
     {
+        free(nyStreng);
         return NULL;
     }
 }
@@ -68,7 +79,7 @@ int distance_between(char *s, char c) //avstanden av 1. & 2. forkomst av c i s
 }
 
 //oppgave 2 b
-int strSum(char *s)
+int stringsum(char *s)
 {
     int totalt = 0;
     int i = 0;
@@ -78,7 +89,6 @@ int strSum(char *s)
         int verdi = tolower(*s)-96;
         if(verdi < 1 || verdi > 27)
         {
-            printf("'%s', Is not a valid character\n ", s);
             return -1;
         }
 
@@ -86,6 +96,5 @@ int strSum(char *s)
         s++;
 
     }
-    printf("Total verdi : %d\n", totalt);
-    return 0;
+    return totalt;
 }
