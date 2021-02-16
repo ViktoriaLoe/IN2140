@@ -3,10 +3,10 @@ all: main string
 string: string.c 
 
 main: pekere.c 
-	gcc -g pekere.c -o pekere
+		gcc -g pekere.c -o pekere
 
 run: pekere
-	./pekere
+		./pekere
 
 clean:
-	rm -f ./pekere
+		rm -f ./pekere

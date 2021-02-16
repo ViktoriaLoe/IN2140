@@ -1,0 +1,20 @@
+Svar på oppgave 3:
+================
+
+
+Operativsystemer:
+------------------
+Rikgtige påstander = {1, 2, 5}
+
+fork();
+-------
+Riktigie påstander = {1, 5}
+
+Schedulering:
+-------------
+Riktigie påstander = {2, 3, 4}
+
+minne i C:
+---------
+Riktigie påstander = {1, 5}
+
