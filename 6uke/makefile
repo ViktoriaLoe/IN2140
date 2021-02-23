@@ -1,13 +1,13 @@
 CFLAGS = -std=gnu11 -g -Wall -Wextra
 VFLAGS = --leak-check=full --show-leak-kinds=all  --malloc-fill=0x40 --free-fill=0x23 ./$(BIN)
-BIN = files cbra
+BIN = lenkeliste FinnSvinn
 
 all: $(BIN)
 
-files: files.c
+lenkeliste: lenkeliste.c
 	gcc -g $(CFLAGS) -o $@ $^
 
-cbra: cbra.c
+FinnSvinn: FinnSvinn.c
 	gcc -g $(CFLAGS) -o $@ $^
 
 run: $(BIN)
