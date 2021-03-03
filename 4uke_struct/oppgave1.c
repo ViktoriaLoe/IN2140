@@ -10,6 +10,7 @@ void fyllV(int *arr)
     {
         *arr = c;
         // printf("%d\n", *arr);
+        //array[i] = i * i;
         arr++; c+=2;
     }
 
