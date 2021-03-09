@@ -1,0 +1,36 @@
+
+
+
+
+Et program for å lagre og behandle grunnleggende
+informasjon om ruterne. 
+
+Ta i mot to filer
+
+1: beskriver ruterne og koblinger mellom dem
+    noder og kanter i en graf
+    binørdata 
+
+    int N = fire byte -> hvor mange rutere filen har info om
+    N antall infoblokker.
+        infoblokk max 256 bytes
+        ruter ID            = 4 bytes (unik)
+        flagg               = 1 byte 
+        lengde på produsent = 1 byte (ikke nullverdi, labulatortegn eller linjeskift)
+        produsent           = max 249 (lengdde på produsent er antall bytes)
+        avsluttes med nullbyte
+
+
+    Etter N bytes: koblinger mellom rutene 
+        to rute ID =        8 bytes (little endian) første R1 peker på andre R2
+        max 10 koblinger =  80 bytes
+
+
+    
+
+2: kommandoer som skal utføres
+
+
+- anta at programmet kjøres med rett antall argumenter
+- sjekke fopen etc
+

@@ -60,5 +60,5 @@ int main(void)
     til sant, og alt som er likt til usannt(0)*/
 
     fliCaps(&str);
-
+    return 0;
 }

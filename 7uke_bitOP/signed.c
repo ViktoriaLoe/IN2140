@@ -17,5 +17,5 @@ int main(void)
     int kombiSum = a + b;
 
     printf("a = %d %d,b = %o %d, %d\n", c, aSum, b, bSum, kombiSum);
-
+    return 0;
 }
