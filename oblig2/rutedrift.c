@@ -22,7 +22,7 @@ enum type
 };
 
 //global liste over alle rutere
-struct infoBlokk *rutere = NULL;
+struct infoBlokk **rutere = NULL;
 
 
 void freeRute(infoBlokk *rute)
@@ -46,10 +46,11 @@ void printAllInfo()
 
 
 
-void createInfoBlokk(int id, int flagg, char *modell)
+void createInfoBlokk(int id, int flagg, char *modell, int index)
 {
-    infoBlokk *ruter = malloc(sizeof(struct infoBlokk));
 
+    infoBlokk *ruter = malloc(sizeof(struct infoBlokk));
+    rutere[index] = &ruter;
     if (ruter == NULL)
     {
         fprintf(stderr, "mallloc failed, out of memory?\n");
@@ -66,11 +67,6 @@ void createInfoBlokk(int id, int flagg, char *modell)
 }
 
 
-
-void addRute(int id, int flagg, char *modell)
-{
-    createInfoBlokk(id, flagg, modell);
-}
 
 
 
@@ -123,30 +119,31 @@ void readRuterFile(char *filen)
     //allocer N plasser og opprett globalt array
     makeSpaceForInfo(N);
 
+    readCount = fseek(fil, (int)offset, SEEK_SET);
     //while(fread(&offset, 1, 1, fil))     
     //while(offset) //fseek? 
     for (int i = 0; i < N;i++)
     {
         unsigned char ruteID; //4 etterfølgene bytes
         char flagg; //1 byte
-        int lengdeChar; //hvor lang produsent char * er, usikker på denne
+        char lengdeChar; //hvor lang produsent char * er, usikker på denne
         char *produsent;
-        readCount = fseek(fil, offset, SEEK_SET);
         //lese alt i bytes og overføre til 
 
+        //DET ER NOE FEIL I INNLESNING
         fread(&ruteID, sizeof(int), 1, fil);
         checkResult(readCount, fil);
-        printf("%d \n", ruteID);
+        printf("%d ID\n", ruteID);
 
         fread(&flagg, 1, 1, fil);
-        printf("%d\n", flagg);
+        printf("%d flagg\n", flagg);
 
         fread(&lengdeChar, 1, 1, fil);
-        for (int j = 0; j < (int)lengdeChar; j++)
-        {
+        printf("%d lengdeChar\n", (int)lengdeChar);
         
-        }
-        //addRute(ruteID, flagg, produsent);
+        //fread(&produsent, 1, (int)lengdeChar, fil);
+        printf("produsent: %s\n", produsent);
+        createInfoBlokk(ruteID, flagg, produsent, i);
     }
 
     if (ferror(fil))
