@@ -7,11 +7,10 @@
 
 typedef struct infoBlokk
 {
-    int id;
-    int flagg;
+    int id, flagg;
     char *modell; //produsent
     struct infoBlokk **pekere;//usikker her
-    int antallPekere;
+    int antallPekere, visited, endringsnummer;
 } infoBlokk;
 
 
@@ -22,16 +21,16 @@ int numberOfRutere = 0;
 
 void freeRute(int id)
 {
-    free(rutere[findIndex(id)]);
+    free(rutere[findIndexById(id)]);
 }
 
 void freeAllRuter()
 {
     for (int i = 0; i < numberOfRutere;i++)
     {
-        free(rutere[i]);
         free(rutere[i]->modell);
         free(rutere[i]->pekere);
+        free(rutere[i]);
     }
     free(rutere);
 }
@@ -41,7 +40,7 @@ void printOneRute(int i)
     printf("ID: %d, Flagg: %d, Modell: %s\nKoblet med: \n", rutere[i]->id, rutere[i]->flagg, rutere[i]->modell);
     for (int j = 0;j < rutere[i]->antallPekere; j++)
     {
-        printf(stdout, "    ID: %d \n", rutere[i]->pekere[j]->id);
+        printf( "    ID: %d \n", rutere[i]->pekere[j]->id);
     }
     printf("\n");
 
@@ -60,7 +59,7 @@ void printAllInfo()
     }
 }
 
-void createInfoBlokk(int id, int flagg, char *modell, int index)
+void createInfoBlokk(int id, int flagg, unsigned char *modell, int index)
 {
 
     infoBlokk *ruter = malloc(sizeof(struct infoBlokk));
@@ -71,16 +70,16 @@ void createInfoBlokk(int id, int flagg, char *modell, int index)
     if (ruter == NULL)
     {
         fprintf(stderr, "mallloc failed, out of memory?\n");
-        //free_info;
+        freeAllRuter();
         exit(EXIT_FAILURE);
     }
-
-    ruter->modell = strdup(modell); // les antall bytes og navn til char * i main
+    
+    ruter->modell = strdup((char *)modell); // les antall bytes og navn til char * i main
     ruter->antallPekere = 0;
     ruter->id = id; //gjør om fra bits til int i main
     ruter->flagg = flagg; // gjør om fra bits til int i main
-    //printf("id: %d, flagg : %d, produsent : %s\n", rutere[index]->id, rutere[index]->flagg, modell);
-    
+    ruter->visited = 0;
+    ruter->endringsnummer = 0; 
 }
 
 void makeSpaceForInfo(int N)
@@ -122,6 +121,7 @@ void readRuterFile(char *filen)
     makeSpaceForInfo(N);
     numberOfRutere = N;
 
+    //LESE FIL
     for (int i = 0; i < N; i++)
     {
         unsigned int ruteID; //4 etterfølgene bytes
@@ -142,14 +142,14 @@ void readRuterFile(char *filen)
         produsent[lengdeChar] = 0;
 
         checkResult(rc, fil);
-        createInfoBlokk(ruteID, flagg, produsent, i);
+        createInfoBlokk(ruteID, flagg, produsent, i); //er det noe galt med å sende flagg 
 
         fseek(fil, 1, SEEK_CUR);
     }
 
 //LES KOBLINGER
-    unsigned int R1;
-    unsigned int R2;
+    int R1;
+    int R2;
     while(fread(&R1, 4, 1, fil))
     {
         fread(&R2, 4, 1, fil);
@@ -165,7 +165,6 @@ void readRuterFile(char *filen)
                         int plass = rutere[i]->antallPekere;
                         rutere[i]->pekere[plass] = rutere[j];
                         rutere[i]->antallPekere++;
-                        printf("id: %d, peker nå på id: %d\n", rutere[i]->id, rutere[j]->id );
                         break;
                         
                     }
@@ -176,7 +175,7 @@ void readRuterFile(char *filen)
     fclose(fil);
 }
 
-int findIndex(int id)
+int findIndexById(int id)
 {
     for (int i = 0; i < numberOfRutere;i++)
     {
@@ -188,32 +187,78 @@ int findIndex(int id)
     return numberOfRutere+1;
 }
 
-void doCommand(char *command, int id, int id2, char *nyModell, char verdi, char nyFlagg)
+
+int DFS(struct infoBlokk *ruter, int idLookingFor)
 {
-    if (strstr(command, "print")){
-        printOneRute(findIndex(id));
-    }
-    if (strstr(command, "modell")){
-        rutere[findIndex(id)]->modell = nyModell;
-    }
-    if (strstr(command, "flagg")){
-        if (nyFlagg == '3') {printf("Ugyldig flaggverdi!\n");}
-        if ((int)nyFlagg > 8) {printf("Ugyldig flaggverdi!");}
-        else {
-            rutere[findIndex(id)]->flagg = nyFlagg+verdi;
+    ruter->visited = 1;
+    for (int i = 0; i < ruter->antallPekere;i++) 
+    {
+        if(ruter->pekere[i]->id == idLookingFor)
+        {
+            printf("Det finnes en kobling\n");
+            return 1;
+        }
+        if (ruter->pekere[i]->visited == 0)
+        {
+            DFS(ruter->pekere[i], idLookingFor);
         }
     }
+}
+
+int doCommand(char *command)
+{
+    int id, id2;
+    char *nyModell;
+    char verdi, nyFlagg;
+
+    //Sorter innholdet i kommandlinjen
+    struct infoBlokk *ruter1 = rutere[findIndexById(id)];
+
+    if (strstr(command, "print")){
+        printOneRute(findIndexById(id));
+        return 0;
+    }
+
+    if (strstr(command, "modell")){
+        rutere[findIndexById(id)]->modell = nyModell;
+        return 0;
+    }
+
+    if (strstr(command, "flagg")){
+        if (nyFlagg == '3') {printf("Ugyldig flaggverdi!\n");
+            return 1;}
+        if ((int)nyFlagg > 8) {printf("Ugyldig flaggverdi!");
+            return 1;}
+        else {
+            rutere[findIndexById(id)]->flagg = nyFlagg+verdi;
+        }
+        return 0;
+    }
+
     if (strstr(command, "finnes")){
-        //DFS
+        int result = DFS(findIndexById(id), id2);
+        switch (result)
+        {
+            case 1 : printf("Det finnes en kobling mellom ruterne");
+                break;
+            default : printf("Det finnes ikke en kobling");
+        }
     }
+
     if (strstr(command, "slett")){
-        //traversere?
+        //traversere? full dfs
     }
+
     if(strstr(command, "kobling")){
-        int n = rutere[findIndex(id)]->antallPekere;
-        rutere[findIndex(id)]->pekere[n+1] = rutere[findIndex(id2)];
-    } else {
+        int n = ruter1->antallPekere;
+        ruter1->pekere[n+1] = rutere[findIndexById(id2)];
+        ruter1->antallPekere++;
+        ruter1->endringsnummer++;
+        return 0;
+    }
+    else {
         printf("Det er ikke en kommando");
+        return 1;
     }
 
 }
@@ -227,13 +272,22 @@ void readCommandsFile(char *filen)
     if (fil == NULL)
     {
         perror("fopen");
-        freeAllRuter();
+        //freeAllRuter();
         exit(EXIT_FAILURE);
     }
 
     char *linje;
     size_t lengde = 0;
-    //int readCount;
+    ssize_t read;
+
+    while ((read = getline(&linje, &lengde, fil)) != -1)
+    {
+        //les en og en linje og send hele til doCommand funksjon
+        if (doCommand(linje) == 0) break;
+    }
+
+    fclose(fil);
+
 }
 
 
@@ -253,8 +307,7 @@ int main(int argc, char *argv[])
     //process bits in file
     readRuterFile(fil1);
     //readCommandsFile(fil2);
-    printAllInfo();
-    
+    DFS(rutere[findIndexById(983)], 530);
     freeAllRuter();
     return 0;
 }
