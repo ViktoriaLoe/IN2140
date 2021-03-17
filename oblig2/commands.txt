@@ -4,6 +4,7 @@ print 579
 sett_flagg 579 0 0
 sett_flagg 579 1 0
 sett_flagg 579 2 1
+sett_flagg 891 1 0
 print 579
 finnes_rute 133 437
 finnes_rute 133 705

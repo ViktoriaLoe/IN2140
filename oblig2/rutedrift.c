@@ -5,46 +5,52 @@
 #include <stdlib.h>
 
 
-typedef struct infoBlokk
+typedef struct Router
 {
     int id;
-    unsigned char flagg;
-    char *modell; //produsent
-    struct infoBlokk **pekere;//usikker her
-    int antallPekere, visited, endringsnummer;
-} infoBlokk;
+    unsigned char flag;
+    char *model; //produsent
+    struct Router **pointers;//usikker her
+    int numerOfPointers, visited;
+} Router;
 
 
-//global liste over alle rutere
-struct infoBlokk **rutere = NULL;
-//globalt int om antall rutere
+//global liste over alle routers
+struct Router **routers = NULL;
+//globalt int om antall routers
 int numberOfRutere = 0;
 
 void freeRute(int id)
 {
-    free(rutere[id]);
+    free(routers[id]);
 }
 
 void freeAllRuter()
 {
     for (int i = 0; i < numberOfRutere;i++)
     {
-        free(rutere[i]->modell);
-        free(rutere[i]->pekere);
-        free(rutere[i]);
+        if (routers[i] != NULL) break;
+        free(routers[i]->model);
+        free(routers[i]->pointers);
+        free(routers[i]);
     }
-    free(rutere);
+    free(routers);
 }
 
 void printOneRute(int i)
 {
-    if (rutere[i] == NULL) return;
-    printf("ID: %d, Flagg: %d, Modell: %s\nKoblet med: \n", rutere[i]->id, rutere[i]->flagg, rutere[i]->modell);
-    for (int j = 0;j < rutere[i]->antallPekere; j++)
+    if (routers[i] == NULL) return;
+    printf("-----------------------\n");
+    printf("ID: %d, flag: %d, model: %s\nKoblet med: \n", routers[i]->id, routers[i]->flag, routers[i]->model);
+    for (int j = 0;j < routers[i]->numerOfPointers; j++)
     {
-        printf( "    ID: %d \n", rutere[i]->pekere[j]->id);
+        if (routers[i]->numerOfPointers == 0) {
+            printf("No connections\n");
+            break;
+        }
+        printf( "    ID: %d \n", routers[i]->pointers[j]->id);
     }
-    printf("\n");
+    printf("-----------------------\n");
 
 }
 
@@ -52,46 +58,57 @@ void printAllInfo()
 {
     for (int i = 0; i <numberOfRutere; i++)
     {
-        if (rutere[i] == NULL) break;
-        printf("ID: %d, Flagg: %d, Modell: %s\nKoblet med: \n", rutere[i]->id, rutere[i]->flagg, rutere[i]->modell);
-        for (int j = 0;j < rutere[i]->antallPekere; j++)
+        if (routers[i] == NULL) break;
+        printf("ID: %d, flag: %d, model: %s\nKoblet med: \n", routers[i]->id, routers[i]->flag, routers[i]->model);
+        for (int j = 0;j < routers[i]->numerOfPointers; j++)
         {
-            if (rutere[i]->pekere[j] == NULL) break;
-                printf("    ID: %d \n", rutere[i]->pekere[j]->id);
+            if (routers[i]->pointers[j] == NULL) break;
+                printf("    ID: %d \n", routers[i]->pointers[j]->id);
         }
         printf("\n");
     }
 }
 
-void createInfoBlokk(int id, unsigned char flagg, unsigned char *modell, int index)
+void makeSpaceForInfo(int N)
+{
+    printf("%d\n", N);
+    routers = malloc(sizeof(struct Router*) * N);
+    //alloker nok plass til all structs 
+    //og opprett et array med alle sammen som er globalt
+}
+
+int findIndexById(int idL)
+{
+    for (int i = 0; i < numberOfRutere;i++)
+    {
+        if (routers[i]->id == idL)
+        {
+            return i;
+        }
+    }
+    return 1;
+}
+
+void createRouter(int id, unsigned char flag,  char *modelnavn, int index)
 {
 
-    infoBlokk *ruter = malloc(sizeof(struct infoBlokk));
-    ruter->pekere  = malloc(sizeof(struct infoBlokk) * 10); 
+    Router *router = malloc(sizeof(struct Router));
+    router->pointers  = malloc(sizeof(struct Router) * 10); 
 
-    rutere[index] = ruter; 
+    routers[index] = router; 
     
-    if (ruter == NULL)
+    if (router == NULL)
     {
         fprintf(stderr, "mallloc failed, out of memory?\n");
         freeAllRuter();
         exit(EXIT_FAILURE);
     }
     
-    ruter->modell = strdup((char *)modell); // les antall bytes og navn til char * i main
-    ruter->antallPekere = 0;
-    ruter->id = id; //gjør om fra bits til int i main
-    ruter->flagg = flagg; 
-    ruter->visited = 0;
-    ruter->endringsnummer = 0; 
-}
-
-void makeSpaceForInfo(int N)
-{
-    printf("%d\n", N);
-    rutere = malloc(sizeof(struct infoBlokk*) * N);
-    //alloker nok plass til all structs 
-    //og opprett et array med alle sammen som er globalt
+    router->model = strdup(modelnavn);
+    router->numerOfPointers = 0;
+    router->id = id;
+    router->flag = flag; 
+    router->visited = 0;
 }
 
 void checkResult(int res, FILE *f) {
@@ -111,7 +128,6 @@ void readRuterFile(char *filen)
     if (fil == NULL)
     {
         perror("fopen");
-        freeAllRuter();
         exit(EXIT_FAILURE);
     }
 
@@ -128,14 +144,14 @@ void readRuterFile(char *filen)
     for (int i = 0; i < N; i++)
     {
         unsigned int ruteID; //4 etterfølgene bytes
-        unsigned char flagg; //1 byte
+        unsigned char flag; //1 byte
         unsigned char lengdeChar; //hvor lang produsent char * er, usikker på denne
-        unsigned char produsent[249];
+        char produsent[249];
 
         rc = fread(&ruteID, sizeof(int), 1, fil);
         checkResult(rc, fil);
 
-        rc = fread(&flagg, sizeof(char), 1, fil);
+        rc = fread(&flag, sizeof(char), 1, fil);
         checkResult(rc, fil);
 
         rc = fread(&lengdeChar, sizeof(char), 1, fil);
@@ -145,7 +161,7 @@ void readRuterFile(char *filen)
         produsent[lengdeChar] = 0;
 
         checkResult(rc, fil);
-        createInfoBlokk(ruteID, flagg, produsent, i); //er det noe galt med å sende flagg 
+        createRouter(ruteID, flag, produsent, i); //er det noe galt med å sende flag 
 
         fseek(fil, 1, SEEK_CUR);
     }
@@ -159,15 +175,15 @@ void readRuterFile(char *filen)
 
         for (int i = 0; i < N; i++)
         {
-            if (rutere[i]->id == R1) //Finner R1
+            if (routers[i]->id == R1) //Finner R1
             {
                 for (int j = 0; j < N; j++)
                 {
-                    if (rutere[j]->id == R2) // Finner R2
+                    if (routers[j]->id == R2) // Finner R2
                     {
-                        int plass = rutere[i]->antallPekere;
-                        rutere[i]->pekere[plass] = rutere[j];
-                        rutere[i]->antallPekere++;
+                        int plass = routers[i]->numerOfPointers;
+                        routers[i]->pointers[plass] = routers[j];
+                        routers[i]->numerOfPointers++;
                         break;
                         
                     }
@@ -178,67 +194,71 @@ void readRuterFile(char *filen)
     fclose(fil);
 }
 
-int findIndexById(int idL)
-{
-    for (int i = 0; i < numberOfRutere;i++)
-    {
-        if (rutere[i]->id == idL)
-        {
-            return i;
-        }
-    }
-    return 1;
-}
-
 void unvisitAll()
 {
     for (int i = 0; i < numberOfRutere;i++)
     {
-        rutere[i]->visited = 0;
+        routers[i]->visited = 0;
     }
 }
 
-//FULL DFS
-void Slett (int LookingFor)
+//DELETE router
+void delete (int LookingFor)
 { 
     /*Forstår det sånn at den må kun frees en gang, fordi alt vil automatisk 
     peke på null etter det. */
     for (int i = 0; i < numberOfRutere; i++) {
-        if (rutere[i] == NULL) break;
-        for (int j = 0; j < rutere[i]->antallPekere;j++) 
+        if (routers[i] == NULL) break;
+        for (int j = 0; j < routers[i]->numerOfPointers;j++) 
         {
-            if (rutere[i]->pekere[j] == NULL) break;
-            if(rutere[i]->pekere[j]->id == LookingFor)
+            if (routers[i]->pointers[j] == NULL) break;
+            if(routers[i]->pointers[j]->id == LookingFor)
             {
-                rutere[i]->antallPekere--;
+                routers[i]->numerOfPointers--;
             }
 
         }
     }
-    printf("fjerner %d\n", findIndexById(LookingFor));
-    free(rutere[findIndexById(LookingFor)]);
+    freeRute(LookingFor);
 }
 //DFS
-int dFS(struct infoBlokk *ruter, int idLookingFor)
+int dFS(struct Router *router, int idLookingFor)
 {
-    ruter->visited = 1;
-    for (int i = 0; i < ruter->antallPekere;i++) 
+    router->visited = 1;
+    for (int i = 0; i < router->numerOfPointers;i++) 
     {
-        if (ruter->pekere[i] == NULL) break;
-        if(ruter->pekere[i]->id == idLookingFor)
+        if (router->pointers[i] != NULL) 
         {
-            printf("Det finnes en kobling\n");
-            return 0;
-        }
-        if (ruter->pekere[i]->visited == 0)
-        {
-            dFS(ruter->pekere[i], idLookingFor);
-            
+            if(router->pointers[i]->id == idLookingFor)
+            {
+                return 0;
+            }
+            else if (router->pointers[i]->visited == 0)
+            {
+                dFS(router->pointers[i], idLookingFor);
+        
+            }
         }
     }
     
     return 1;
 }
+void printFlagBits(unsigned char flag)
+{
+        int number = flag;
+        for (int i = 8 - 1; i >= 0; i--)
+        {
+                int shifted_number = number >> i;
+
+                if (shifted_number & 1)
+                        printf("1");
+                else
+                        printf("0");
+        }
+
+        printf("\n");
+}
+
 
 //EXECUTE COMMAND
 int doCommand(char cmd[])
@@ -246,8 +266,10 @@ int doCommand(char cmd[])
     char *command;
     int id, id2;
     int cnt;
-    char *nyModell;
-    char verdi, nyFlagg;
+    int newFlag;
+    char *newModel;
+    unsigned char verdi;
+   
 
     char * pch;
     pch = strtok(cmd, "  ");
@@ -258,26 +280,29 @@ int doCommand(char cmd[])
     while (pch != NULL)
     {
         pch = strtok(NULL," ,");
-        printf("%d : %s\n", cnt, pch);
+        //printf("%d : %s\n", cnt, pch);
 
         if (cnt == 0) {id = atoi(pch);}
-        else if (cnt == 1 && strstr(command, "flagg")){ 
-            nyFlagg = pch[0];
+        else if (cnt == 1 && strstr(command, "flag")){ 
+            newFlag = atoi(pch);
+            printf("%d\n", newFlag);
             pch = strtok(NULL, " ");
             verdi = pch[0];
         }
-        else if (cnt == 1 && strstr(command, "modell")) {
-            nyModell = pch;
+        else if (cnt == 1 && strstr(command, "model")) {
+            newModel = pch;
             pch = strtok(NULL, "  ");
             char * tmp = strdup(pch);
-            strcat(nyModell, " ");
-            strcat(nyModell, tmp);
-            printf("modell %s %d\n", nyModell, cnt);
+            strcat(newModel, " ");
+            strcat(newModel, tmp);
+            printf("model %s %d\n", newModel, cnt);
+            free(tmp);
         }
-        else if(cnt == 2 && strstr(command, "modell") && pch != NULL) {
+        else if(cnt == 2 && strstr(command, "model") && pch != NULL) {
             char * tmp = strdup(pch);
-            strcat(nyModell, " ");
-            strcat(nyModell, tmp);
+            strcat(newModel, " ");
+            strcat(newModel, tmp);
+            free(tmp);
             break;
         }
 
@@ -287,56 +312,66 @@ int doCommand(char cmd[])
         cnt++;
     }
     
-    struct infoBlokk *ruter1 = rutere[findIndexById(id)];
-    struct infoBlokk *ruter2 = rutere[findIndexById(id2)];
-    
+    struct Router *ruter1 = routers[findIndexById(id)];
+    struct Router *ruter2 = routers[findIndexById(id2)];
+    //PRINT
     if (strstr(command, "print")){
         printOneRute(findIndexById(id));
         return 0;
     }
-
-    else if (strstr(command, "modell")){ //ikke ferdig
-        ruter1->modell = nyModell;//fix
-        printf("ny modelle er :%s\n", ruter1->modell);
+    //MODELL
+    else if (strstr(command, "model")){ 
+        ruter1->model = newModel;
+        printf("ny modelle er :%s\n", ruter1->model);
         return 0;
     }
+    //FLAGG
+    else if (strstr(command, "flag")){ //ikke ferdig
+        if (newFlag == 3) {printf("Ugyldig flaggverdi!\n");
+            return 1;}
+        else if (newFlag > 7) {printf("Ugyldig flaggverdi!");
+            return 1;}
+        else 
+        {
+            if (verdi == '0') { // biten skal bli 0
+                printf("flag %d, verdi %c %d\n", newFlag, verdi, ruter1->flag);
+                printFlagBits(ruter1->flag);
+                ruter1->flag = ruter1->flag & (~(1 << newFlag)); 
+            }
+            else { // bitten skal bli 1
+                printf("flag %c, verdi %c %d\n", newFlag, verdi, ruter1->flag);
+                ruter1->flag |= 1 << newFlag;
 
-    else if (strstr(command, "flagg")){ //ikke ferdig
-        if (nyFlagg == '3') {printf("Ugyldig flaggverdi!\n");
-            return 1;}
-        else if ((int)nyFlagg < 7) {printf("Ugyldig flaggverdi!");
-            return 1;}
-        else {
-            ruter1->flagg = ruter1->flagg & (1 << verdi);
-            printf("ny flagg er : %x, %c\n", ruter1->flagg, verdi);
+            }
+           printFlagBits(ruter1->flag); 
         }
         return 0;
     }
-
-    else if (strstr(command, "finnes")){ // ikke ferdig
-        int result = dFS(rutere[findIndexById(id)], id2);
+    //FINNES
+    else if (strstr(command, "finnes")){ 
+        int result = dFS(routers[findIndexById(id)], id2);
         unvisitAll();
         switch (result)
         {
-            case 0 : printf("Det finnes en kobling mellom ruterne");
+            case 0 : printf("Det finnes en kobling mellom ruterne\n");
                 break;
-            default : printf("Det finnes ikke en kobling\n");
+            case 1 : printf("Det finnes ikke en kobling\n");
+                break;
         }
     }
-
-    else if (strstr(command, "slett")){
+    //DELETE
+    else if (strstr(command, "delete")){
         printf("forsøker å slette alle koblinger til id: %d\n", id);
-        Slett(id);
+        delete(id);
         numberOfRutere--;
     }
-
+    //KOBLING
     else if(strstr(command, "kobling")){
-        printf("Sjekker alle koblinger.\n");
-        int n = ruter1->antallPekere;
-        ruter1->pekere[n+1] = ruter2;
-        ruter1->antallPekere++;
-        ruter1->endringsnummer++;
-        return 1;
+        ruter1->pointers[ruter1->numerOfPointers+1] = ruter2;
+        printf("%d har nå kobling med %d\n", ruter1->id, ruter2->id);
+        ruter1->numerOfPointers++;
+        
+        return 0;
     }
     else {
         return 1;
@@ -372,42 +407,46 @@ void readCommandsFile(char *filen)
 
 
 // WRITE TO FILE
-void writeToFile() //nesten ferdig
+int writeToFile() //nesten ferdig
 {
     FILE *newFile;
     newFile = fopen("newTopology.dat", "wb");
+    if (newFile == NULL)
+    {
+        perror("fopen");
+        return EXIT_FAILURE;
+    }
 
-    fwrite (&numberOfRutere, sizeof(numberOfRutere), 1, newFile);
+    fwrite (&numberOfRutere, sizeof(int), 1, newFile);
 
     for (int i = 0; i < numberOfRutere; i++)
     {
-        if (rutere[i] == NULL) break;
-        int ruteID = rutere[i]->id; //4 etterfølgene bytes
-        unsigned char flagg = rutere[i]->id; //1 byte
-        char lengdeChar = strlen(rutere[i]->modell); //hvor lang produsent char * er, usikker på denne
-        char *produsent = rutere[i]->modell;
-
-        printf("%d id: %s\n",i, produsent);
-        
-        fwrite (&ruteID, sizeof(ruteID), 1, newFile);
-        fwrite (&flagg, sizeof(char), 1, newFile);
-        fwrite (&lengdeChar, sizeof(char), 1, newFile);
-        fwrite(produsent, sizeof(char)*lengdeChar, 1, newFile);
+        if (routers[i] != NULL)
+        {
+            char *produsent = routers[i]->model;
+            fwrite (&routers[i]->id, sizeof(int), 1, newFile);
+            fwrite (&routers[i]->flag, sizeof(char), 1, newFile);
+            
+            char lengdeChar = strlen(routers[i]->model); //hvor lang produsent char * er, usikker på denne
+            fwrite (&lengdeChar, sizeof(char), 1, newFile);
+            //fwrite(produsent, (sizeof(char)*lengdeChar +1), 1, newFile);
+            fwrite(routers[i]->model, (sizeof(char)*lengdeChar + 1), 1, newFile);
+        }
     }
 
     //skrive kobling info
-    int R1;
-    int R2;
     for (int i = 0; i < numberOfRutere; i++)
     {
-        R1 = rutere[i]->id;
-        for (int j = 0; j < rutere[i]->antallPekere;j++)
+        if (routers[i] == NULL) break;
+        for (int j = 0; j < routers[i]->numerOfPointers;j++)
         {
-            fwrite((const void*) &R1, sizeof(R1),1, newFile);
-            R2 = rutere[i]->pekere[j]->id;
-            fwrite((const void*) &R2, sizeof(R2),1, newFile);
+            if (routers[i]->pointers[j] == NULL) break;
+            fwrite(&routers[i]->id, sizeof(int),1, newFile);
+            fwrite(&routers[i]->pointers[j]->id, sizeof(int),1, newFile);
         }
     }
+    fclose(newFile);
+    return EXIT_SUCCESS;
 }
 
 #define BUFFERSIZE 100
@@ -427,19 +466,17 @@ int main(int argc, char *argv[])
     
     char *fil2 = argv[2];
     readCommandsFile(fil2);
-    //char str[] = "modell 705 Space evo";
-    //char str[] = "slett 705";
+    //char str[] = "model 705 Space evo";
+    //char str[] = "delete 705";
     //doCommand(str);
     //printOneRute(findIndexById(705));
     //writeToFile();
-
+    freeAllRuter();
     return 0;
 }
 
 
 /* Igjen å gjøre:
-- få kommando lesning til å fungere alltid
-    - flagg med flere verdier
-    - navn med mellomrom
+- flag med flere verdier
 - skrive data til å være helt riktig
 - teorioppgaver*/
