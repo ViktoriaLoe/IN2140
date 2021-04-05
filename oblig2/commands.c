@@ -113,7 +113,6 @@ int doCommand(char cmd[])
         else if (cnt == 1 && strstr(command, "flag"))
         {
             newFlag = atoi(pch);
-            printf("%d\n", newFlag);
             pch = strtok(NULL, " ");
             verdi = pch[0];
         }
@@ -131,7 +130,7 @@ int doCommand(char cmd[])
     //PRINT
     if (strstr(command, "print"))
     {
-        printOneRute(findIndexById(id));
+        printOneRute(id);
         return 0;
     }
     //MODELL
@@ -142,19 +141,19 @@ int doCommand(char cmd[])
         printf("ny modelle er :%s\n", ruter1->model);
         return 0;
     }
-    //FLAGG   Skjønner ikke helt
+    //FLAGG   Skjønner ikke helt men må se på bits ikke tall
     else if (strstr(command, "flag"))
     { 
-        if (newFlag == 3)
+        if (newFlag & (1<<3))
         {
             printf("Ugyldig flaggverdi!\n");
             return 1;
         }
-        else if (newFlag > 7)
-        {
-            printf("Ugyldig flaggverdi!");
-            return 1;
-        }
+        // else if (newFlag > 7)
+        // {
+        //     printf("Ugyldig flaggverdi!");
+        //     return 1;
+        // }
         else
         {
             if (verdi == '0')
@@ -198,7 +197,7 @@ int doCommand(char cmd[])
     else if (strstr(command, "kobling"))
     {
         ruter1->pointers[ruter1->numerOfPointers] = ruter2;
-        printf("%d har nå kobling med %d\n", ruter1->id, ruter2->id);
+        printf("id: %d is not connected to id: %d\n", ruter1->id, ruter1->pointers[ruter1->numerOfPointers]->id);
         ruter1->numerOfPointers++;
 
         return 0;

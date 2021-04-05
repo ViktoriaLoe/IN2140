@@ -48,8 +48,9 @@ void printFlagg(struct Router *r)
     printf("%d\n", r->flag  ); 
 }
 
-void printOneRute(int i)
+void printOneRute(int id)
 {
+    int i = findIndexById(id);
     if (routers[i] == NULL)
     {
         return;
