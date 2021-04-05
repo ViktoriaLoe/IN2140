@@ -96,6 +96,7 @@ int doCommand(char cmd[])
         if (cnt == 1 && strstr(command, "model")){
             newModel =  malloc(sizeof(char)*249); 
             pch = strtok(NULL, "\n");
+            strcpy(newModel, pch);
         }
         //lese ett og ett ord
         else    {
@@ -115,11 +116,6 @@ int doCommand(char cmd[])
             printf("%d\n", newFlag);
             pch = strtok(NULL, " ");
             verdi = pch[0];
-        }
-        //hente modell
-        else if (cnt == 1 && strstr(command, "model"))
-        {
-            strcpy(newModel, pch);
         }
 
         //hente id2
