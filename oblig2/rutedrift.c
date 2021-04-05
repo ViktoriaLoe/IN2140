@@ -15,6 +15,7 @@ void freeRute(int id)
         free(routers[index]);
     }
 }
+
 void freeAllRuter()
 {
     for (int i = 0; i < numberOfRutere; i++)
