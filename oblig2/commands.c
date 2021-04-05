@@ -78,7 +78,7 @@ int doCommand(char cmd[])
     int id, id2;
     int cnt;
     int newFlag;
-    char *newModel = malloc(sizeof(char)*249); 
+    char *newModel;
     unsigned char verdi;
 
     struct Router *ruter1; 
@@ -94,6 +94,7 @@ int doCommand(char cmd[])
     {
         //lese hele modell navnet
         if (cnt == 1 && strstr(command, "model")){
+            newModel =  malloc(sizeof(char)*249); 
             pch = strtok(NULL, "\n");
         }
         //lese ett og ett ord
@@ -141,11 +142,11 @@ int doCommand(char cmd[])
     else if (strstr(command, "model"))
     {
         free(ruter1->model);
-        ruter1->model = strdup(newModel);
+        ruter1->model = newModel;
         printf("ny modelle er :%s\n", ruter1->model);
         return 0;
     }
-    //FLAGG
+    //FLAGG   Skjønner ikke helt
     else if (strstr(command, "flag"))
     { 
         if (newFlag == 3)
