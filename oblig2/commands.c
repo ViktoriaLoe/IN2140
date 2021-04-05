@@ -116,6 +116,7 @@ int doCommand(char cmd[])
             printf("model %s %d\n", newModel, cnt);
             free(tmp);
         }
+        
         else if (cnt == 2 && strstr(command, "model") && pch != NULL)
         {
             char *tmp = strdup(pch);
