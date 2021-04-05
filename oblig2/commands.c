@@ -78,7 +78,7 @@ int doCommand(char cmd[])
     int id, id2;
     int cnt;
     int newFlag;
-    char *newModel;
+    char *newModel = malloc(sizeof(char)*249); 
     unsigned char verdi;
 
     struct Router *ruter1; 
@@ -92,13 +92,22 @@ int doCommand(char cmd[])
     cnt = 0;
     while (pch != NULL)
     {
-        pch = strtok(NULL, " ,");
+        //lese hele modell navnet
+        if (cnt == 1 && strstr(command, "model")){
+            pch = strtok(NULL, "\n");
+        }
+        //lese ett og ett ord
+        else    {
+            pch = strtok(NULL, " ");
+        }
 
+        //hente id
         if (cnt == 0)
         {
             id = atoi(pch);
             ruter1 = routers[findIndexById(id)];
         }
+        //hente flagg
         else if (cnt == 1 && strstr(command, "flag"))
         {
             newFlag = atoi(pch);
@@ -106,33 +115,19 @@ int doCommand(char cmd[])
             pch = strtok(NULL, " ");
             verdi = pch[0];
         }
+        //hente modell
         else if (cnt == 1 && strstr(command, "model"))
         {
-            newModel = pch;
-            pch = strtok(NULL, "  ");
-            char *tmp = strdup(pch);
-            strcat(newModel, " ");
-            strcat(newModel, tmp);
-            printf("model %s %d\n", newModel, cnt);
-            free(tmp);
-        }
-        
-        else if (cnt == 2 && strstr(command, "model") && pch != NULL)
-        {
-            char *tmp = strdup(pch);
-            strcat(newModel, " ");
-            strcat(newModel, tmp);
-            free(tmp);
-            break;
+            strcpy(newModel, pch);
         }
 
+        //hente id2
         else if (cnt == 1 && (strstr(command, "finnes") || strstr(command, "kobling")))
         {
             id2 = atoi(pch);
             ruter2 = routers[findIndexById(id2)];
             break;
         }
-
         cnt++;
     }
 
@@ -203,7 +198,7 @@ int doCommand(char cmd[])
         numberOfRutere--;
     }
     //KOBLING
-else if (strstr(command, "kobling"))
+    else if (strstr(command, "kobling"))
     {
         ruter1->pointers[ruter1->numerOfPointers] = ruter2;
         printf("%d har nå kobling med %d\n", ruter1->id, ruter2->id);
