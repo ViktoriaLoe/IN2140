@@ -1,18 +1,12 @@
 CFLAGS = -std=gnu11 -g -Wall -Wextra
 VFLAGS = --leak-check=full --show-leak-kinds=all  --malloc-fill=0x40 --free-fill=0x23 ./$(BIN)
-BIN =  rutedrift
+BIN =  pidTest 
 
 all: $(BIN)
 
-rutedrift: rutedrift.c commands.c
+pidTest: pidTest.c
 	gcc -g $(CFLAGS) -o $@ $^
 	
-signed: signed.c
-	gcc -g $(CFLAGS) -o $@ $^
-
-printbits: printbits.c
-	gcc -g $(CFLAGS) -o $@ $^
-
 run: $(BIN)
 	./$(BIN)
 
