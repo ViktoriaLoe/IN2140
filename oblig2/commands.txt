@@ -12,5 +12,6 @@ finnes_rute 983 579
 finnes_rute 705 766
 legg_til_kobling 705 133
 finnes_rute 705 766
+finnes_rute 705 133 
 slett_ruter 133
-finnes_rute 705 766
+finnes_rute 705 133 

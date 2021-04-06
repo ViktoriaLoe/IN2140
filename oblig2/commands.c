@@ -99,7 +99,7 @@ int doCommand(char cmd[])
             strcpy(newModel, pch);
         }
         //lese ett og ett ord
-        else    {
+        else {
             pch = strtok(NULL, " ");
         }
 
@@ -149,25 +149,23 @@ int doCommand(char cmd[])
             printf("Ugyldig flaggverdi!\n");
             return 1;
         }
-        // else if (newFlag > 7)
-        // {
-        //     printf("Ugyldig flaggverdi!");
-        //     return 1;
-        // }
+        else if (newFlag > 4)
+        {
+            // set de første 4 bitsene til å bli 'verdi' ?
+        }
+       
         else
         {
             if (verdi == '0')
             {
-                printf("flag %d, verdi %c %d\n", newFlag, verdi, ruter1->flag);
-                printFlagBits(ruter1->flag);
+                // printFlagBits(ruter1->flag);
                 ruter1->flag = ruter1->flag & (~(1 << newFlag));
             }
             else
             { 
-                printf("flag %c, verdi %c %d\n", newFlag, verdi, ruter1->flag);
                 ruter1->flag |= 1 << newFlag;
             }
-            printFlagBits(ruter1->flag);
+            // printFlagBits(ruter1->flag);
         }
         return 0;
     }

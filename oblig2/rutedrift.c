@@ -32,20 +32,20 @@ void freeAllRuter()
 
 void printFlagg(struct Router *r)
 {
-    printf("...\n Er aktiv: ");
+    printf("...\n   Er aktiv: ");
     if (r->flag & (1<<0)) {printf("Ja \n"); }
     else {printf("Nei\n");}
 
-    printf("...\n Er trådløs: ");
+    printf("    Er trådløs: ");
     if (r->flag & (1<<1)) {printf("Ja \n"); }
     else {printf("Nei\n");}
     
-    printf("...\n 5GHz: ");
+    printf("    5GHz: ");
     if (r->flag & (1<<2)) {printf("Ja \n"); }
     else {printf("Nei\n");}
 
-    printf("...\n  Endringsnummer: ");
-    printf("%d\n", r->flag  ); 
+    printf("    Endringsnummer: ");
+    printf("%d\n...\n", r->flag  ); 
 }
 
 void printOneRute(int id)
@@ -56,8 +56,9 @@ void printOneRute(int id)
         return;
     }
     printf("-----------------------\n");
-    printf("ID: %d, model: %s\nKoblet med: \n", routers[i]->id, routers[i]->model);
+    printf("ID: %d, Model: %s\n", routers[i]->id, routers[i]->model);
     printFlagg(routers[i]);
+    printf("Er koblet med: \n");
     for (int j = 0; j < routers[i]->numerOfPointers; j++)
     {
         if (routers[i]->numerOfPointers == 0)
@@ -115,6 +116,7 @@ void createRouter(int id, unsigned char flag, char *modelnavn, int index)
     router->numerOfPointers = 0;
     router->id = id;
     router->flag = flag;
+    router->endringsnummer = flag >> 4;
     router->visited = 0;
 }
 
