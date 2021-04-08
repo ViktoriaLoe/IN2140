@@ -71,6 +71,39 @@ void printFlagBits(unsigned char flag)
     printf("\n");
 }
 
+int * convert(int dec, int *output) {
+    
+    output[3] = (dec & 1) + 0;
+    output[2] = ((dec >> 1) & 1) + 0;
+    output[1] = ((dec >> 2) & 1) + 0;
+    output[0] = ((dec >> 3) & 1) + 0;
+    return output;
+}
+
+unsigned char changeFlag(unsigned char currentFlag, int *newBits)
+{
+    printFlagBits(currentFlag);
+    for (int i = 4; i < 8; i++)
+    { //hvis i-ende biten i currentFlag ikke er det samme som newBits på tilsvaredne posisjon
+        int set = currentFlag & (1<<i);
+        char bit = newBits[i-4];
+        if (!(set == bit))
+        {
+            //så flipper vi den fra 1 til 0
+            if ((currentFlag & (1<<i))) {
+                currentFlag &= (~(1 << i));
+            }
+            else {
+                currentFlag &= (~(1 << i));
+                currentFlag |= (1 << i);
+            }
+        }
+    }
+
+    printFlagBits(currentFlag);
+    return currentFlag;
+}
+
 //EXECUTE COMMAND
 int doCommand(char cmd[])
 {
@@ -151,7 +184,9 @@ int doCommand(char cmd[])
         }
         else if (newFlag > 4)
         {
-            // set de første 4 bitsene til å bli 'verdi' ?
+            int bits[4];
+            int *bit = convert(verdi, bits); //gjør om verdi til 4 bit
+            ruter1->flag = changeFlag(ruter1->flag, bit); 
         }
        
         else
@@ -169,6 +204,7 @@ int doCommand(char cmd[])
         }
         return 0;
     }
+    
     //FINNES
     else if (strstr(command, "finnes"))
     {
