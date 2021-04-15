@@ -8,15 +8,14 @@
 
 void freeRute(int id)
 {
-    if (routers[id] != NULL)
-    {
-    if (routers[id] != NULL) {
-        free(routers[id]->model);
-        free(routers[id]->pointers);
-        free(routers[id]);
-    }
+    int index = findIndexById(id);
+    if (routers[index] != NULL) {
+        free(routers[index]->model);
+        free(routers[index]->pointers);
+        free(routers[index]);
     }
 }
+
 void freeAllRuter()
 {
     for (int i = 0; i < numberOfRutere; i++)
@@ -31,12 +30,35 @@ void freeAllRuter()
     free(routers);
 }
 
-void printOneRute(int i)
+void printFlagg(struct Router *r)
 {
+    printf("...\n   Er aktiv: ");
+    if (r->flag & (1<<0)) {printf("Ja \n"); }
+    else {printf("Nei\n");}
+
+    printf("    Er trådløs: ");
+    if (r->flag & (1<<1)) {printf("Ja \n"); }
+    else {printf("Nei\n");}
+    
+    printf("    5GHz: ");
+    if (r->flag & (1<<2)) {printf("Ja \n"); }
+    else {printf("Nei\n");}
+
+    printf("    Endringsnummer: ");
+    printf("%d\n...\n", r->flag  ); 
+}
+
+void printOneRute(int id)
+{
+    int i = findIndexById(id);
     if (routers[i] == NULL)
+    {
         return;
+    }
     printf("-----------------------\n");
-    printf("ID: %d, flag: %d, model: %s\nKoblet med: \n", routers[i]->id, routers[i]->flag, routers[i]->model);
+    printf("ID: %d, Model: %s\n", routers[i]->id, routers[i]->model);
+    printFlagg(routers[i]);
+    printf("Er koblet med: \n");
     for (int j = 0; j < routers[i]->numerOfPointers; j++)
     {
         if (routers[i]->numerOfPointers == 0)
@@ -53,18 +75,10 @@ void printAllInfo()
 {
     for (int i = 0; i < numberOfRutere; i++)
     {
-        if (routers[i] == NULL)
-            break;
-        printf("ID: %d, flag: %d, model: %s\nKoblet med: \n", routers[i]->id, routers[i]->flag, routers[i]->model);
-        for (int j = 0; j < routers[i]->numerOfPointers; j++)
-        {
-            if (routers[i]->pointers[j] == NULL)
-                break;
-            printf("    ID: %d \n", routers[i]->pointers[j]->id);
-        }
-        printf("\n");
+        printOneRute(i);
     }
 }
+
 void makeSpaceForInfo(int N)
 {
     printf("%d\n", N);
@@ -87,7 +101,7 @@ void createRouter(int id, unsigned char flag, char *modelnavn, int index)
 {
 
     Router *router = malloc(sizeof(struct Router));
-    router->pointers = malloc(sizeof(struct Router) * 10);
+    router->pointers = malloc(sizeof(struct Router *) * 10);
 
     routers[index] = router;
 
@@ -102,6 +116,7 @@ void createRouter(int id, unsigned char flag, char *modelnavn, int index)
     router->numerOfPointers = 0;
     router->id = id;
     router->flag = flag;
+    router->endringsnummer = flag >> 4;
     router->visited = 0;
 }
 

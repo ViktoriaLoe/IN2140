@@ -19,8 +19,18 @@ int main (int argc, char *argv )
         exit(EXIT_FAILURE);
     }
 
-    //creating stream socket, not datagram
+    //creating stream socket, not datagram, TCP not UDP
     if ((socketFd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         exit(EXIT_FAILURE);
 
+
+    //specify family and port 
+    //convert to network 
+
+    //translate text ip to binary with inet_pton
+
+
+    //connect to server with connect 
+
+    
 }

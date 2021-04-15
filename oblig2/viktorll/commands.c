@@ -26,6 +26,8 @@ void delete (int LookingFor)
                 break;
             if (routers[i]->pointers[j]->id == LookingFor)
             {
+                routers[i]->pointers[j] = NULL;
+                free(routers[i]->pointers[j]);
                 routers[i]->numerOfPointers--;
             }
         }
@@ -69,6 +71,39 @@ void printFlagBits(unsigned char flag)
     printf("\n");
 }
 
+int * convert(int dec, int *output) {
+    
+    output[3] = (dec & 1) + 0;
+    output[2] = ((dec >> 1) & 1) + 0;
+    output[1] = ((dec >> 2) & 1) + 0;
+    output[0] = ((dec >> 3) & 1) + 0;
+    return output;
+}
+
+unsigned char changeFlag(unsigned char currentFlag, int *newBits)
+{
+    printFlagBits(currentFlag);
+    for (int i = 4; i < 8; i++)
+    { //hvis i-ende biten i currentFlag ikke er det samme som newBits på tilsvaredne posisjon
+        int set = currentFlag & (1<<i);
+        char bit = newBits[i-4];
+        if (!(set == bit))
+        {
+            //så flipper vi den fra 1 til 0
+            if ((currentFlag & (1<<i))) {
+                currentFlag &= (~(1 << i));
+            }
+            else {
+                currentFlag &= (~(1 << i));
+                currentFlag |= (1 << i);
+            }
+        }
+    }
+
+    printFlagBits(currentFlag);
+    return currentFlag;
+}
+
 //EXECUTE COMMAND
 int doCommand(char cmd[])
 {
@@ -79,6 +114,9 @@ int doCommand(char cmd[])
     char *newModel;
     unsigned char verdi;
 
+    struct Router *ruter1; 
+    struct Router *ruter2;
+
     char *pch;
     pch = strtok(cmd, "  ");
     command = pch;
@@ -87,93 +125,86 @@ int doCommand(char cmd[])
     cnt = 0;
     while (pch != NULL)
     {
-        pch = strtok(NULL, " ,");
+        //lese hele modell navnet
+        if (cnt == 1 && strstr(command, "model")){
+            newModel =  malloc(sizeof(char)*249); 
+            pch = strtok(NULL, "\n");
+            strcpy(newModel, pch);
+        }
+        //lese ett og ett ord
+        else {
+            pch = strtok(NULL, " ");
+        }
 
+        //hente id
         if (cnt == 0)
         {
             id = atoi(pch);
+            ruter1 = routers[findIndexById(id)];
         }
+        //hente flagg
         else if (cnt == 1 && strstr(command, "flag"))
         {
             newFlag = atoi(pch);
-            printf("%d\n", newFlag);
             pch = strtok(NULL, " ");
             verdi = pch[0];
         }
-        else if (cnt == 1 && strstr(command, "model"))
-        {
-            newModel = pch;
-            pch = strtok(NULL, "  ");
-            char *tmp = strdup(pch);
-            strcat(newModel, " ");
-            strcat(newModel, tmp);
-            printf("model %s %d\n", newModel, cnt);
-            free(tmp);
-        }
-        else if (cnt == 2 && strstr(command, "model") && pch != NULL)
-        {
-            char *tmp = strdup(pch);
-            strcat(newModel, " ");
-            strcat(newModel, tmp);
-            free(tmp);
-            break;
-        }
 
+        //hente id2
         else if (cnt == 1 && (strstr(command, "finnes") || strstr(command, "kobling")))
         {
             id2 = atoi(pch);
+            ruter2 = routers[findIndexById(id2)];
             break;
         }
-
         cnt++;
     }
 
-    struct Router *ruter1 = routers[findIndexById(id)];
-    struct Router *ruter2 = routers[findIndexById(id2)];
     //PRINT
     if (strstr(command, "print"))
     {
-        printOneRute(findIndexById(id));
+        printOneRute(id);
         return 0;
     }
     //MODELL
     else if (strstr(command, "model"))
     {
         free(ruter1->model);
-        ruter1->model = strdup(newModel);
+        ruter1->model = newModel;
         printf("ny modelle er :%s\n", ruter1->model);
         return 0;
     }
-    //FLAGG
+    //FLAGG   Skjønner ikke helt men må se på bits ikke tall
     else if (strstr(command, "flag"))
     { 
-        if (newFlag == 3)
+        if (newFlag & (1<<3))
         {
             printf("Ugyldig flaggverdi!\n");
             return 1;
         }
-        else if (newFlag > 7)
+        else if (newFlag > 4)
         {
-            printf("Ugyldig flaggverdi!");
-            return 1;
+            int bits[4];
+            int *bit = convert(verdi, bits); //gjør om verdi til 4 bit
+            ruter1->flag = changeFlag(ruter1->flag, bit); 
         }
+       
         else
         {
             if (verdi == '0')
             {
-                printf("flag %d, verdi %c %d\n", newFlag, verdi, ruter1->flag);
-                printFlagBits(ruter1->flag);
+                // printFlagBits(ruter1->flag);
                 ruter1->flag = ruter1->flag & (~(1 << newFlag));
             }
             else
             { 
-                printf("flag %c, verdi %c %d\n", newFlag, verdi, ruter1->flag);
                 ruter1->flag |= 1 << newFlag;
             }
-            printFlagBits(ruter1->flag);
+            // printFlagBits(ruter1->flag);
         }
         return 0;
     }
+    
     //FINNES
     else if (strstr(command, "finnes"))
     {
@@ -190,7 +221,7 @@ int doCommand(char cmd[])
         }
     }
     //DELETE
-    else if (strstr(command, "delete"))
+    else if (strstr(command, "slett"))
     {
         printf("forsøker å slette alle koblinger til id: %d\n", id);
         delete (id);
@@ -199,8 +230,8 @@ int doCommand(char cmd[])
     //KOBLING
     else if (strstr(command, "kobling"))
     {
-        ruter1->pointers[ruter1->numerOfPointers + 1] = ruter2;
-        printf("%d har nå kobling med %d\n", ruter1->id, ruter2->id);
+        ruter1->pointers[ruter1->numerOfPointers] = ruter2;
+        printf("id: %d is not connected to id: %d\n", ruter1->id, ruter1->pointers[ruter1->numerOfPointers]->id);
         ruter1->numerOfPointers++;
 
         return 0;
