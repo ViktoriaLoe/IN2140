@@ -1,10 +1,10 @@
 CFLAGS = -std=gnu11 -g -Wall -Wextra
 VFLAGS = --leak-check=full --show-leak-kinds=all  --malloc-fill=0x40 --free-fill=0x23 ./$(BIN)
-BIN = socketPrg. 
+BIN = 
 
 all: $(BIN)
 
-socketPrg: socketPrg.c
+: .c
 	gcc -g $(CFLAGS) -o $@ $^
 	
 run: $(BIN)

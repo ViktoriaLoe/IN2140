@@ -86,7 +86,7 @@ int main(int argc, char const *argv[])
    FD_ZERO(&fds);
 
    FD_SET(msgFD, &fds);
-   FD_SET(STDIN_FILENO, &fds);
+   //FD_SET(STDIN_FILENO, &fds);
 
    rc = select(FD_SETSIZE, &fds, NULL, NULL, NULL);
 
@@ -103,13 +103,13 @@ int main(int argc, char const *argv[])
 
    }
 
-    if (FD_ISSET(STDIN_FILENO, &fds))
+  /*  if (FD_ISSET(STDIN_FILENO, &fds))
     {
         //mld fra tastatur
             //lese inni buffer
          
             //2 sende mld over nett til friend
-    }
+    }*/
 
 
     close(msgFD);
