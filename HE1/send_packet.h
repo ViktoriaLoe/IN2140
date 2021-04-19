@@ -12,20 +12,20 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 
-char *packet_to_buffer(struct Packet *packet)
-{
 
-}
+//Prints out meaning of files in buffer
+void my_print_packet(struct Packet *packet);
 
-char * construct_packet()
-{
-    struct Packet buffer;
-    char *packet_buffer = packet_to_buffer(&buffer);
+//Calls construct_packet to create packet out of input_buffer
+void buffer_to_packet(char *buffer);
 
+//Creates sendable packet to output_buffer
+char* my_packet_to_buffer(struct Packet *packet);
 
-    return packet_buffer;
-}
+//Constructs packet struct from arguements
+char* construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload);
 
+//packet
 typedef struct Packet
 {
     unsigned char flag;
@@ -36,7 +36,7 @@ typedef struct Packet
     int recv_id;
     int metadata; // if flag == 0c04 then metadata is length of packet + payload in bytes
     // if it's +x20 then metadata gives an itnerger value that indicates the reason for refusing the request
-    char payload[1000]; // metadata is size, only for flag == 0x04
+    char *payload; // metadata is size, only for flag == 0x04
 } Packet;
 
 /* This function is used to set the probability (a value between 0 and 1) for

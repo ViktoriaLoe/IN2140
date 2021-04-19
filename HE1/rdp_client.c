@@ -24,7 +24,7 @@ int main(int argc, char const *argv[])
 
     if (argc < 4)
     {
-        printf("Usage: %s <server-ip> <port-number> <loss-prob>\n", argv[0]);
+        fprintf(stderr, "[ERROR]Usage: %s <server-ip> <port-number> <loss-prob>\n", argv[0]);
         return EXIT_SUCCESS;
     }
     //check if input is in valid format
@@ -53,7 +53,7 @@ int main(int argc, char const *argv[])
 
     /* Sending packet*/
     const char *packet_request;
-    rc = send_packet(udpSocket_fd,                          /*socket*/
+    rc = send_packet(udpSocket_fd,                      /*socket*/
                     packet_request,                     /*message*/
                     sizeof(unsigned char),              /*amount of bytes*/
                     0,                                  /*flags*/
@@ -61,16 +61,27 @@ int main(int argc, char const *argv[])
                     sizeof(struct sockaddr_in));        /*size of addres-struct */
     
     
-   check_error(rc, "send_packet");
+    check_error(rc, "send_packet");
         //when a connection is established, client prints connection-ID to both server and client
-    printf("Sent %d bytes\n", rc);
+    fprintf(stderr, "[INFO] Sent %d bytes\n", rc);
     
+
     /* Receive packets with recvfrom*/
     rc = recvfrom(udpSocket_fd, input_buffer, BUFFER_SIZE, 
                 0, (struct sockaddr*)&addr_con, &sockaddr_size);
     check_error(rc, "recvfrom");
     //convert buffer to printable info
     fprintf(stderr, "[INFO] Received from server %s\n", input_buffer);
+
         //when package is recieved and saved -> the RDP-connection is closed and it prints the name of the file and quits
+
+
+
+
+
+
+
+
+    close(udpSocket_fd);
     return EXIT_SUCCESS;
 }

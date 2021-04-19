@@ -1,13 +1,13 @@
 CFLAGS = -std=gnu11 -g -Wall -Wextra
 VFLAGS = --leak-check=full --show-leak-kinds=all  
-BIN = NewFSP_client NewFSP_server 
+BIN = rdp_client rdp_server 
 
 all: $(BIN)
 
-NewFSP_client : NewFSP_client.c send_packet.c
+rdp_client : rdp_client.c send_packet.c Packet.c
 	gcc -g $(CFLAGS) -o $@ $^
 	
-NewFSP_server : NewFSP_server.c send_packet.c
+rdp_server : rdp_server.c send_packet.c Packet.c
 	gcc -g $(CFLAGS) -o $@ $^
 
 

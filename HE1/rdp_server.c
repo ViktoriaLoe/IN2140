@@ -97,7 +97,7 @@ int main(int argc, char const *argv[])
     /*Check if right amount of arguments are provided */
     if (argc < 5)
     {
-        printf("Usage: %s <port-number> <filename> <number-of-transerfer> <loss-prob>\n", argv[0]);
+        fprintf(stderr, "[ERROR] Usage: %s <port-number> <filename> <number-of-transerfer> <loss-prob>\n", argv[0]);
         return EXIT_SUCCESS;
     }
     // Check for right format in arguments
