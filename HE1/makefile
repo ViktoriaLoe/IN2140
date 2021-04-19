@@ -1,17 +1,15 @@
 CFLAGS = -std=gnu11 -g -Wall -Wextra
-VFLAGS = --leak-check=full --show-leak-kinds=all  --malloc-fill=0x40 --free-fill=0x23 ./$(BIN)
-BIN = NewFSP_client NewFSP_server RDP_protocol
+VFLAGS = --leak-check=full --show-leak-kinds=all  
+BIN = NewFSP_client NewFSP_server 
 
 all: $(BIN)
 
-NewFSP_client : NewFSP_client.c
+NewFSP_client : NewFSP_client.c send_packet.c
 	gcc -g $(CFLAGS) -o $@ $^
 	
-NewFSP_server : NewFSP_server.c
+NewFSP_server : NewFSP_server.c send_packet.c
 	gcc -g $(CFLAGS) -o $@ $^
 
-RDP_protocol : RDP_protocol.c
-	gcc -g $(CFLAGS) -o $@ $^
 
 run: $(BIN)
 	./$(BIN)

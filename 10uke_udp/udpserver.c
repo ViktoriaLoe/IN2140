@@ -7,6 +7,7 @@
 
 void check_error(int ret, char *msg) {
     if (ret == -1) {
+        fprintf(stderr, "[ERROR] An error has occurred attempting function: %s\n", msg);
         perror(msg);
         exit(EXIT_FAILURE);
     }
