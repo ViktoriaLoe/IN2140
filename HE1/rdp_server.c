@@ -22,7 +22,7 @@ struct rdp_connection { //add to header potentially
     //current position within file
     unsigned char pktseq;
     int client_socketFd;
-} client;
+};
 
 int rdp_write()
 {
@@ -33,7 +33,7 @@ int rdp_write()
 }
 
 
-struct rdp_connection rdp_accept()
+void rdp_accept()
 {
     // https://github.com/hzxie/Multiplex-Socket/blob/master/server.c see line 264
     // https://github.com/hzxie/Multiplex-Socket/blob/master/udp-client.c for client
@@ -129,7 +129,10 @@ int main(int argc, char const *argv[])
     while (0)
     {
         int action = 0;
-        //1. Check for new rdp connection requests
+        //recvfrom();
+        //buffer_to_packet
+
+        //1. Check if it was a new connect request  
         rdp_accept();
 
         //2. Try to deliver the 'next' packages to all connected rdp-clients

@@ -12,19 +12,6 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 
-
-//Prints out meaning of files in buffer
-void my_print_packet(struct Packet *packet);
-
-//Calls construct_packet to create packet out of input_buffer
-void buffer_to_packet(char *buffer);
-
-//Creates sendable packet to output_buffer
-char* my_packet_to_buffer(struct Packet *packet);
-
-//Constructs packet struct from arguements
-char* construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload);
-
 //packet
 typedef struct Packet
 {
@@ -38,6 +25,19 @@ typedef struct Packet
     // if it's +x20 then metadata gives an itnerger value that indicates the reason for refusing the request
     char *payload; // metadata is size, only for flag == 0x04
 } Packet;
+
+//Prints out meaning of files in buffer
+void my_print_packet(struct Packet *p);
+
+//Calls construct_packet to create packet out of input_buffer
+void buffer_to_packet(char *buffer);
+
+//Creates sendable packet to output_buffer
+char* my_packet_to_buffer(struct Packet *p);
+
+//Constructs packet struct from arguements
+char* construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload);
+
 
 /* This function is used to set the probability (a value between 0 and 1) for
  * dropping a packet in the send_packet function. You call set_loss_probability

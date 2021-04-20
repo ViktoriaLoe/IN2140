@@ -8,11 +8,11 @@
 
 int sequence_number = 100;
 
-void my_print_packet(struct Packet *packet)
+void my_print_packet(struct Packet *p)
 {
-    unsigned char flag = packet->flag;
-    int sid = packet->sender_id;
-    int rid = packet-> recv_id;
+    unsigned char flag = p->flag;
+    int sid = p->sender_id;
+    int rid = p-> recv_id;
 
     if (flag & 0x01){ fprintf(stderr,"[INFO] This is a connect request, sender: %d receiver: %d\n", sid, rid);}
     if (flag & 0x02){ fprintf(stderr,"[INFO] This is a connection termination \n");}
@@ -28,7 +28,7 @@ void buffer_to_packet(char *buffer)
     //calls construct_packet to create packet out of input_buffer
 }
 
-char* my_packet_to_buffer(struct Packet *packet)
+char* my_packet_to_buffer(struct Packet *p)
 {
     char *buffer;
 
@@ -53,7 +53,7 @@ char *construct_packet(unsigned char flag, unsigned char pktseq, unsigned char a
         packet->payload = payload;
     }
 
-    char *packet_buffer = packet_to_buffer(packet);
+    char *packet_buffer = my_packet_to_buffer(packet);
     return packet_buffer;
 }
 
