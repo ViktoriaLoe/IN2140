@@ -12,7 +12,9 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 
-//packet
+
+
+/*PACKET FILES*/
 typedef struct Packet
 {
     unsigned char flag;
@@ -27,28 +29,54 @@ typedef struct Packet
 } Packet;
 
 //Prints out meaning of files in buffer
-void my_print_packet(struct Packet *p);
+void            my_print_packet(struct Packet *p);
 
 //Calls construct_packet to create packet out of input_buffer
-void buffer_to_packet(char *buffer);
+struct Packet*  buffer_to_packet(char *buffer);
 
 //Creates sendable packet to output_buffer
-char* my_packet_to_buffer(struct Packet *p);
+char*           my_packet_to_buffer(struct Packet *p);
 
 //Constructs packet struct from arguements
-char* construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload);
+char*           construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload);
 
 
+
+/* RDP FILES*/
+struct rdp_connection { //add to header potentially 
+    struct sockaddr_in ip_adress;   // what socket will bind to 
+    int connection_id;              // used to identify client
+    unsigned char pktseq;           // bytes sent 
+    unsigned char status;           // used to identify if last action was ACKed
+    int client_socketFd;
+};
+
+struct rdp_connection **active_connections;
+int number_of_connections;
+int max_connections; 
+
+// accepts incoming network requests 
+struct rdp_connection*  rdp_accept(struct Packet *packet, struct sockaddr_in addr_cli);
+
+// writes to receiver 
+int                     rdp_write();
+
+void                    rdp_read();
+
+void                    rdp_close();
+
+
+// Extra functions
 /* This function is used to set the probability (a value between 0 and 1) for
  * dropping a packet in the send_packet function. You call set_loss_probability
  * once in your program, and send_packet will drop packets after that.
  */
-void set_loss_probability( float x );
+void        set_loss_probability( float x );
 
 /* This is a lossy replacement for the sendto function. It uses a random
  * number generator to drop packets with the probability chosen with
  * set_loss_probability. If it doesn't drop the packet, it calls sendto.
  */
-ssize_t send_packet( int sock, const char* buffer, size_t size, int flags, const struct sockaddr* addr, socklen_t addrlen );
+ssize_t     send_packet( int sock, const char* buffer, size_t size, int flags, const struct sockaddr* addr, socklen_t addrlen );
 
 #endif /* SEND_PACKET_H */

@@ -8,6 +8,19 @@
 
 int sequence_number = 100;
 
+struct Packet
+{
+    unsigned char flag;
+    unsigned char packet_seq;
+    unsigned char ack_seq;
+    //unused 
+    int sender_id;
+    int recv_id;
+    int metadata; // if flag == 0c04 then metadata is length of packet + payload in bytes
+    // if it's +x20 then metadata gives an itnerger value that indicates the reason for refusing the request
+    char *payload; // metadata is size, only for flag == 0x04
+};
+
 void my_print_packet(struct Packet *p)
 {
     unsigned char flag = p->flag;
@@ -23,7 +36,7 @@ void my_print_packet(struct Packet *p)
 }
 
 
-void buffer_to_packet(char *buffer)
+struct Packet* buffer_to_packet(char *buffer)
 {
     //calls construct_packet to create packet out of input_buffer
 }
@@ -37,6 +50,9 @@ char* my_packet_to_buffer(struct Packet *p)
 
 char *construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload)
 {
+    //CHECK if packet is empty and handle this 
+    // If we receive a packet where multiple bits in flags is one, discard it
+
     struct Packet *packet = malloc(sizeof(struct Packet));
     if (packet == NULL) { fprintf(stderr,"[ERROR] malloc failed\n");}
 

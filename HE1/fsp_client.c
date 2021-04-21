@@ -7,6 +7,7 @@
 
 #define BUFFER_SIZE 1000
 
+
 void check_error(int ret, char *msg) {
     if (ret == -1) {
         fprintf(stderr, "[ERROR] An error has occurred attempting function: %s\n", msg);
@@ -17,6 +18,14 @@ void check_error(int ret, char *msg) {
 
 int main(int argc, char const *argv[])
 {
+    /* DESCRIPTION
+    * It's the client that always initiates the connection 
+    * we have to create multiple clients that all send packets to the server
+    * The client then communicate with the server through packets, and act accordingly 
+    * If a client sends 0x01, a new RDP connection needs to be established
+    * On top of the existing UDP connection 
+    */
+
     /*Variables*/ 
     int udpSocket_fd, rc;
     struct sockaddr_in addr_con;
@@ -38,13 +47,6 @@ int main(int argc, char const *argv[])
 
     char input_buffer[BUFFER_SIZE] = {0};
     char output_buffer[BUFFER_SIZE] = {0};
-    /* DESCRIPTION
-    * It's the client that always initiates the connection 
-    * we have to create multiple clients that all send packets to the server
-    * The client then communicate with the server through packets, and act accordingly 
-    * If a client sends 0x01, a new RDP connection needs to be established
-    * On top of the existing UDP connection 
-    */
 
     /* Socket to send datagrams with IPv4*/
     udpSocket_fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -65,20 +67,19 @@ int main(int argc, char const *argv[])
         //when a connection is established, client prints connection-ID to both server and client
     fprintf(stderr, "[INFO] Sent %d bytes\n", rc);
     
-
+    // CHECK; if server takes more than a second to answer, terminate.
     /* Receive packets with recvfrom*/
     rc = recvfrom(udpSocket_fd, input_buffer, BUFFER_SIZE, 
                 0, (struct sockaddr*)&addr_con, &sockaddr_size);
     check_error(rc, "recvfrom");
-    //convert buffer to printable info
-    fprintf(stderr, "[INFO] Received from server %s\n", input_buffer);
+    struct Packet *response = buffer_to_packet(input_buffer);
+    fprintf(stderr, "[INFO] CONNECTED TO SERVER  id: %d client_id: %d\nReceived from server %s\n", response->sender_id, response->recv_id, input_buffer);
+
+
+    // reveive and store complete file
 
         //when package is recieved and saved -> the RDP-connection is closed and it prints the name of the file and quits
-
-
-
-
-
+    
 
 
 
