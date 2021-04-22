@@ -10,7 +10,7 @@
 #define BUFFER_SIZE 1000
 
 
-void rdp_close()
+void rdp_close(struct Packet *packet)
 {
 
 }
@@ -22,9 +22,10 @@ void rdp_read()
 
 int rdp_write()
 {
+    //goes through all connected clients and checks if more needs to be sent
+    // send packets 
     // When sending a packet, the sender has to be achknowledged
 
-    // see document for further instructions
     return 0;
 }
 

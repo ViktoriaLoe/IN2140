@@ -86,7 +86,7 @@ int main(int argc, char const *argv[])
                 0, (struct sockaddr *)&addr_cli, &sock_addrsize);
                 // clients IP would be inet_ntoa(addr_cli.sin_addr) and port ntohn(addr_cli.sin_port)
         check_error(rc, "recvfrom");
-        struct Packet *input = buffer_to_packet(input_buffer);
+        struct Packet *input = buffer_to_packet(input_buffer); //packet that holds input
 
 
         //1. Check if it was a new connect request  
@@ -106,6 +106,7 @@ int main(int argc, char const *argv[])
         if(input->flag & 0x02) {
             // free rdp_connection
             fprintf(stderr, "[INFO] DISCONNECTED %d %d\n", input->sender_id, input->recv_id);
+            rdp_close(input); // closes connection removes from array and frees space
         }
 
         //4. if none of this happened, wait ~ either wait 1s or use select() to wait
@@ -125,6 +126,9 @@ int main(int argc, char const *argv[])
     - Where does the ID gets set?
     - What isn't always included in packet?
     - When does server send ack
+    - Where do I create the packets and how
+    - How do I read the buffer 
+    - Why is the buffer const char not char * what's the difference?ah
     
 
   Things to remember:

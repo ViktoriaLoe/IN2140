@@ -73,6 +73,7 @@ int main(int argc, char const *argv[])
                 0, (struct sockaddr*)&addr_con, &sockaddr_size);
     check_error(rc, "recvfrom");
     struct Packet *response = buffer_to_packet(input_buffer);
+    // check if it was a connection accpet
     fprintf(stderr, "[INFO] CONNECTED TO SERVER  id: %d client_id: %d\nReceived from server %s\n", response->sender_id, response->recv_id, input_buffer);
 
 

@@ -17,13 +17,10 @@
 /*PACKET FILES*/
 typedef struct Packet
 {
-    unsigned char flag;
-    unsigned char packet_seq;
-    unsigned char ack_seq;
+    unsigned char flag, packet_seq, ack_seq;
     //unused 
-    int sender_id;
-    int recv_id;
-    int metadata; // if flag == 0c04 then metadata is length of packet + payload in bytes
+    int sender_id, recv_id, metadata;
+    // if flag == 0c04 then metadata is length of packet + payload in bytes
     // if it's +x20 then metadata gives an itnerger value that indicates the reason for refusing the request
     char *payload; // metadata is size, only for flag == 0x04
 } Packet;
@@ -38,7 +35,7 @@ struct Packet*  buffer_to_packet(char *buffer);
 char*           my_packet_to_buffer(struct Packet *p);
 
 //Constructs packet struct from arguements
-char*           construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload);
+struct Packet*           construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload);
 
 
 
@@ -63,7 +60,7 @@ int                     rdp_write();
 
 void                    rdp_read();
 
-void                    rdp_close();
+void                    rdp_close(struct Packet *packet);
 
 
 // Extra functions
