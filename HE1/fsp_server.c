@@ -40,6 +40,7 @@ int main(int argc, char const *argv[])
     const char *filename;
     FILE *file;
 
+
     /*Check if right amount of arguments are provided */
     if (argc < 5)
     {
@@ -47,7 +48,7 @@ int main(int argc, char const *argv[])
         return EXIT_SUCCESS;
     }
         // Check for right format in arguments
-
+    fprintf(stderr, "[INFO] server successfully received input\n");
    /* Socket to receive datagrams with IPv4*/
         // There needs to be multiple sockets later on, one for each client
         // The data needs to be fragmented, so it can send large files with UDP
@@ -57,6 +58,7 @@ int main(int argc, char const *argv[])
     /*Assigning input variables, listening for all adresses*/
     socklen_t sock_addrsize = sizeof(struct sockaddr);
     port = atoi(argv[1]);
+    
     addr_con.sin_family = AF_INET;
     addr_con.sin_port = port;
     addr_con.sin_addr.s_addr = INADDR_ANY;
@@ -78,9 +80,10 @@ int main(int argc, char const *argv[])
 
 
     /* MAIN LOOP*/
-    while (0)
+    while (number_of_connections < max_connections+1)
     {
         int action = 0;
+        fprintf(stderr,"[INFO] Trying to recevie data\n");
         /*Getting input and reformatting it*/
         rc = recvfrom(socket_fd, input_buffer, BUFFER_SIZE,
                 0, (struct sockaddr *)&addr_cli, &sock_addrsize);

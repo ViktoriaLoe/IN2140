@@ -17,7 +17,7 @@ void rdp_close(struct Packet *packet)
 
 void rdp_read()
 {
-
+    
 }
 
 int rdp_write()
@@ -65,9 +65,4 @@ struct rdp_connection* rdp_accept(struct Packet *packet, struct sockaddr_in addr
 
     //return NULL-poitner
     return;
-}
-
-int main(void)
-{
-
 }

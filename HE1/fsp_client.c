@@ -53,8 +53,15 @@ int main(int argc, char const *argv[])
     check_error(udpSocket_fd, "socket");
     //client tries to connect to the server, if it doesnt respond within a minute it will exit and write an error.
 
+    /*Making packets to send*/
+    struct Packet *connection_attempt = malloc(sizeof(struct Packet));
+    connection_attempt = construct_packet(0x01, 1, 1, 100, 200, 0, 0);
+    my_print_packet(connection_attempt);
+
     /* Sending packet*/
-    const char *packet_request;
+    const char *packet_request = my_packet_to_buffer(connection_attempt);
+    fprintf(stderr,"[INFO] Buffer: %s\n", packet_request);
+
     rc = send_packet(udpSocket_fd,                      /*socket*/
                     packet_request,                     /*message*/
                     sizeof(unsigned char),              /*amount of bytes*/
@@ -62,7 +69,7 @@ int main(int argc, char const *argv[])
                     (struct sockaddr *)&addr_con,       /*IP and port*/
                     sizeof(struct sockaddr_in));        /*size of addres-struct */
     
-    
+     
     check_error(rc, "send_packet");
         //when a connection is established, client prints connection-ID to both server and client
     fprintf(stderr, "[INFO] Sent %d bytes\n", rc);

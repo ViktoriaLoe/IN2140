@@ -4,10 +4,10 @@ BIN = fsp_client_program fsp_server_program
 
 all: $(BIN)
 
-fsp_client_program : fsp_client.o Packet.o send_packet.o
+fsp_client_program : fsp_client.o Packet.o send_packet.o rdp_layer.o
 	gcc -g $(CFLAGS) $^ -o $@ 
 	
-fsp_server_program : fsp_server.o Packet.o send_packet.o
+fsp_server_program : fsp_server.o Packet.o send_packet.o rdp_layer.o
 	gcc -g $(CFLAGS) $^ -o $@ 
 
 
@@ -20,7 +20,10 @@ fsp_server.o 	: fsp_server.c
 Packet.o 		: Packet.c
 	gcc -g $(CFLAGS) $^ -c
 
-send_packet.o 	: send_packet.o
+rdp_layer.o 	: rdp_layer.c
+	gcc -g $(CFLAGS) $^ -c
+
+send_packet.o 	: send_packet.c
 	gcc -g $(CFLAGS) $^ -c
 
 

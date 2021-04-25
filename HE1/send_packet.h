@@ -32,7 +32,7 @@ void            my_print_packet(struct Packet *p);
 struct Packet*  buffer_to_packet(char *buffer);
 
 //Creates sendable packet to output_buffer
-char*           my_packet_to_buffer(struct Packet *p);
+const char*             my_packet_to_buffer(struct Packet *p);
 
 //Constructs packet struct from arguements
 struct Packet*           construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload);
