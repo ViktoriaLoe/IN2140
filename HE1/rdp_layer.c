@@ -23,8 +23,17 @@ void rdp_read()
 int rdp_write()
 {
     //goes through all connected clients and checks if more needs to be sent
-    // send packets 
-    // When sending a packet, the sender has to be achknowledged
+    for (int i = 0; i < number_of_connections; i ++)
+    {
+        struct rdp_connection *client = active_connections[i];
+        int n = client->number_of_packets;
+
+        if (client->packets[n]/*Something that shows it should send a packet*/)
+        {
+            // send the rest of packet
+        }
+    }   //else if the last packet it sent
+        // send empty packet
 
     return 0;
 }
@@ -54,6 +63,8 @@ struct rdp_connection* rdp_accept(struct Packet *packet, struct sockaddr_in addr
     client->ip_adress = addr_cli;
         //check if id is valid?
     client->connection_id = packet->sender_id;
+    client->number_of_packets = 1;
+    client->packets[client->number_of_packets] = packet;
 
         // check number of sent/sending files
 

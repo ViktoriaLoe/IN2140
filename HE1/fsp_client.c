@@ -54,8 +54,10 @@ int main(int argc, char const *argv[])
     //client tries to connect to the server, if it doesnt respond within a minute it will exit and write an error.
 
     /*Making packets to send*/
-    struct Packet *connection_attempt = malloc(sizeof(struct Packet));
-    connection_attempt = construct_packet(0x01, 1, 1, 100, 200, 0, 0);
+    struct Packet *connection_attempt   = malloc(sizeof(struct Packet));
+    struct Packet *ack_pack             = malloc(sizeof(struct Pakcet));
+    connection_attempt  = construct_packet(0x01, 1, 1, 100, 200, 0, 0);
+    ack_pack            = construct_packet(0x10, 0, 0, 100, 200, 0, 0);
     my_print_packet(connection_attempt);
 
     /* Sending packet*/

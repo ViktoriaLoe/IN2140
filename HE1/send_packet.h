@@ -15,37 +15,38 @@
 
 
 /*PACKET FILES*/
-typedef struct Packet
+struct Packet
 {
     unsigned char flag, packet_seq, ack_seq;
     //unused 
-    int sender_id, recv_id, metadata;
+    int sender_id, recv_id, metadata ;
     // if flag == 0c04 then metadata is length of packet + payload in bytes
     // if it's +x20 then metadata gives an itnerger value that indicates the reason for refusing the request
     char *payload; // metadata is size, only for flag == 0x04
-} Packet;
+};
 
 //Prints out meaning of files in buffer
-void            my_print_packet(struct Packet *p);
+void                    my_print_packet(struct Packet *p);
 
 //Calls construct_packet to create packet out of input_buffer
-struct Packet*  buffer_to_packet(char *buffer);
+struct Packet*          buffer_to_packet(char *buffer);
 
 //Creates sendable packet to output_buffer
 const char*             my_packet_to_buffer(struct Packet *p);
 
 //Constructs packet struct from arguements
-struct Packet*           construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload);
+struct Packet*          construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload);
 
 
 
 /* RDP FILES*/
 struct rdp_connection { //add to header potentially 
     struct sockaddr_in ip_adress;   // what socket will bind to 
-    int connection_id;              // used to identify client
+    int connection_id, number_of_packets;              // used to identify client
     unsigned char pktseq;           // bytes sent 
     unsigned char status;           // used to identify if last action was ACKed
     int client_socketFd;
+    struct Packet **packets; // linked list with all packets to confirm order of arrival 
 };
 
 struct rdp_connection **active_connections;
@@ -58,8 +59,10 @@ struct rdp_connection*  rdp_accept(struct Packet *packet, struct sockaddr_in add
 // writes to receiver 
 int                     rdp_write();
 
+//
 void                    rdp_read();
 
+//
 void                    rdp_close(struct Packet *packet);
 
 
