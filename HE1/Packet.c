@@ -27,25 +27,11 @@ void my_print_packet(struct Packet *p)
     fprintf(stderr,"[INFO] pktseq %d, ackseq %d, sid %d, rid %d\n", p->packet_seq,p->ack_seq, p->sender_id, p->recv_id );
 }
 
-// RDPs read()          Dont know how to read this properly
-struct Packet* buffer_to_packet(char *buffer)
+void my_packet_to_buffer(struct Packet *p, char *buffer)
 {
-    unsigned char flag, pktseq, ackseq;
-    int sid, rid, meta;
-    char *payload;
-    
-    flag = buffer;
-    struct Packet *packet = construct_packet(flag, pktseq, ackseq, sid, rid, meta, payload);
-    return packet;
-    //lets try this ahgagain honey
+    memcpy(buffer, p, sizeof(struct Packet));
 }
-const char* my_packet_to_buffer(struct Packet *p)
-{
-    const char *buffer = malloc(sizeof(char)* BUFSIZE);
-    sprintf(buffer, "%d%c%c%c% d%d%c", p->flag, p->packet_seq, p->ack_seq, p->sender_id, p->recv_id, 0);
-    return buffer;
-    
-}
+
 struct Packet* construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload)
 {
     //CHECK if packet is empty and handle this 
@@ -57,6 +43,7 @@ struct Packet* construct_packet(unsigned char flag, unsigned char pktseq, unsign
     packet->flag = flag;
     packet->packet_seq = pktseq;
     packet->ack_seq = ackseq;
+    packet->unused = 0;
     packet->sender_id = sid;
     packet->recv_id = rid;
     packet->metadata = meta;

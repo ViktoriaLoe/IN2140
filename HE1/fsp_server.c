@@ -8,11 +8,9 @@
 #include "send_packet.h"
 
 #define PORT 
-#define BUFFER_SIZE 1000
 
 //An overview over all active connection to different clients, needs to be dynamically allocated
 int socket_fd;
-
 
 
 void check_error(int ret, char *msg) {
@@ -31,10 +29,16 @@ void free_infrastructure()
     free(active_connections);
 }
 
+void send_file(struct Packet *input)
+{
+    rdp_write();
+}
+
 
 int main(int argc, char const *argv[])
 {
     /*Variables*/ 
+    fd_set readFD;
     int port, rc;
     struct sockaddr_in addr_con, addr_cli;
     const char *filename;
@@ -48,16 +52,14 @@ int main(int argc, char const *argv[])
         return EXIT_SUCCESS;
     }
         // Check for right format in arguments
-    fprintf(stderr, "[INFO] server successfully received input\n");
+    fprintf(stdout, "[INFO] server successfully received input\n");
    /* Socket to receive datagrams with IPv4*/
         // There needs to be multiple sockets later on, one for each client
         // The data needs to be fragmented, so it can send large files with UDP
-    socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
-    check_error(socket_fd, "socket");        
 
     /*Assigning input variables, listening for all adresses*/
     socklen_t sock_addrsize = sizeof(struct sockaddr);
-    port = atoi(argv[1]);
+    port = htons(atoi(argv[1]));
     
     addr_con.sin_family = AF_INET;
     addr_con.sin_port = port;
@@ -73,6 +75,9 @@ int main(int argc, char const *argv[])
     char input_buffer[BUFFER_SIZE] = {0};
     char output_buffer[BUFFER_SIZE] = {0};
 
+    //Socket
+    socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    check_error(socket_fd, "socket");        
 
    /* Socket will listen for adress we assigned (local host)*/
     rc = bind(socket_fd, (struct sockaddr *)&addr_con, sizeof(struct sockaddr_in));
@@ -80,45 +85,56 @@ int main(int argc, char const *argv[])
 
 
     /* MAIN LOOP*/
-    while (number_of_connections < max_connections+1)
+    do
     {
-        int action = 0;
-        fprintf(stderr,"[INFO] Trying to recevie data\n");
+        FD_ZERO(&readFD); //clea the read fd
+        FD_SET(socket_fd, &readFD); //add fd to set
+
+
+        struct Packet *input = malloc(sizeof(struct Packet *));
         /*Getting input and reformatting it*/
-        rc = recvfrom(socket_fd, input_buffer, BUFFER_SIZE,
-                0, (struct sockaddr *)&addr_cli, &sock_addrsize);
-                // clients IP would be inet_ntoa(addr_cli.sin_addr) and port ntohn(addr_cli.sin_port)
-        check_error(rc, "recvfrom");
-        struct Packet *input = buffer_to_packet(input_buffer); //packet that holds input
+        if (FD_ISSET(socket_fd, &readFD)) {
+            fprintf(stdout,"[INFO] Trying to recevie data\n");
+            rc = recvfrom(socket_fd, input, sizeof(struct Packet),
+                    0, (struct sockaddr *)&addr_con, &sock_addrsize);
+                    // clients IP would be inet_ntoa(addr_cli.sin_addr) and port ntohn(addr_cli.sin_port)
+            check_error(rc, "recvfrom");
+            fprintf(stdout,"[INFO] Recevied data %d bytes\n", rc);
 
+            //buffer_to_packet(input_buffer, input); //packet that holds input
+            fprintf(stderr,"[INFO] Buffer contains flag: %d id %d\n", input->flag, input->sender_id);
 
-        //1. Check if it was a new connect request  
-        if (input->flag & 0x01) {
-            if (number_of_connections < max_connections) {
-                rdp_accept(input, addr_cli);
-            } else {
-                //send packet 0x20 == refuses connect request
-                fprintf(stderr, "[ERROR] NOT CONENCTED %d %d\n", input->sender_id, input->recv_id);
+            //1. Check if it was a new connect request 
+            if (input->flag & CONNECT_REQ) {
+                if (number_of_connections < max_connections) {
+                    rdp_accept(input, addr_con, socket_fd);
+                } else {
+                    //send packet 0x20 == refuses connect request
+                    fprintf(stderr, "[ERROR] NOT CONENCTED %d %d\n", input->sender_id, input->recv_id);
+                }
+            }
+
+            //2. Try to deliver the 'next' packages to all connected rdp-clients
+                // We recevied an ACK and can start/proceed in sending file to client
+            if (input->flag & ACK_PACK) {
+                send_file(input);
+            }
+
+            //3. Check if an rdp-connection is closed
+            if(input->flag & CONNECT_TERMINATE) {
+                // free rdp_connection
+                fprintf(stdout, "[INFO] DISCONNECTED %d %d\n", input->sender_id, input->recv_id);
+                rdp_close(input); // closes connection removes from array and frees space
+            }
+
+            //4. if none of this happened, wait ~ either wait 1s or use select() to wait
+            if (0)
+            {
+                //wait
             }
         }
 
-        //2. Try to deliver the 'next' packages to all connected rdp-clients
-        rdp_write();
-
-        //3. Check if an rdp-connection is closed
-        if(input->flag & 0x02) {
-            // free rdp_connection
-            fprintf(stderr, "[INFO] DISCONNECTED %d %d\n", input->sender_id, input->recv_id);
-            rdp_close(input); // closes connection removes from array and frees space
-        }
-
-        //4. if none of this happened, wait ~ either wait 1s or use select() to wait
-        if (!action)
-        {
-            //wait
-        }
-
-    }
+    } while (number_of_connections < max_connections+1);
 
     close(socket_fd);
     free_infrastructure();
@@ -133,6 +149,7 @@ int main(int argc, char const *argv[])
     - How do I read the buffer 
     - Why is the buffer const char not char * what's the difference?ah
     
+    // https://github.com/hzxie/Multiplex-Socket/blob/master/server.c see line 264
 
   Things to remember:
     - Check flags before trying to access payload etc. 
