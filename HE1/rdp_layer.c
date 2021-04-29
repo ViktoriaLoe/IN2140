@@ -20,8 +20,12 @@ void rdp_read()
 {
     
 }
+int rdp_write_server(struct sockaddr_in client_fd, char *output)
+{
 
-int rdp_write(int index)
+}
+
+int rdp_write(struct sockaddr_in client_fd, char *output)
 {
     // what should be sent and where as input
         //while (rc = fread())

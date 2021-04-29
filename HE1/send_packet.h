@@ -64,8 +64,10 @@ int max_connections;
 // accepts incoming network requests 
 struct rdp_connection*  rdp_accept(struct Packet *packet, struct sockaddr_in addr_cli, int fd);
 
-// writes to receiver 
-int                     rdp_write();
+// writes to server 
+int                     rdp_write_server(struct sockaddr_in server, char *buffer);
+// writes to client
+int rdp_write(struct sockaddr_in client_fd, char *output);
 
 //
 void                    rdp_read();

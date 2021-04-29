@@ -41,7 +41,7 @@ int find_connection_index(int sender_id)
 void send_file(struct Packet *input)
 {
     // pakke og 
-    char *outoutbuffer;
+    char *output_buffer;
     //goes through all connected clients and checks if more needs to be sent
 
     /* Reveice a message ffrom client*/
@@ -52,10 +52,16 @@ void send_file(struct Packet *input)
     int index = find_connection_index(input->sender_id);
     struct rdp_connection *current_client = active_connections[index];
     struct sockaddr_in client_ip = current_client->ip_adress;
+    struct Packet *output_packet = malloc(sizeof(struct Packet *));
+    output_packet = construct_packet(DATA_PACK, input->ack_seq, input->packet_seq)
 
     int rc = 0;
-    rdp_write(index);
-    
+    //write to output_buffer from FILE
+
+
+    /*Sending what is in buffer*/
+    rdp_write(client_ip, output_buffer);
+
 }
 
 
@@ -117,52 +123,57 @@ int main(int argc, char const *argv[])
 
 
         struct Packet *input = malloc(sizeof(struct Packet *));
-        /*Getting input and reformatting it*/
-        if (FD_ISSET(socket_fd, &readFD)) {
-            fprintf(stdout,"[INFO] Trying to recevie data\n");
-            //struct timeval tv = {60, 0};
-            //rc = poll(poll_list, 2, tv);
-            rc = recvfrom(socket_fd, input, sizeof(struct Packet),
-                    0, (struct sockaddr *)&addr_con, &sock_addrsize);
-                    // clients IP would be inet_ntoa(addr_cli.sin_addr) and port ntohn(addr_cli.sin_port)
-            check_error(rc, "recvfrom");
-            fprintf(stdout,"[INFO] Recevied data %d bytes\n", rc);
 
-            //buffer_to_packet(input_buffer, input); //packet that holds input
-            fprintf(stderr,"[INFO] Buffer contains flag: %d id %d\n", input->flag, input->sender_id);
+        struct timeval tv = {60, 0};
+        //listening to FD for incoming packet
+        if (select(1, &readFD, NULL, NULL, &tv) < 0) {
 
-            //1. Check if it was a new connect request 
-            if (input->flag & CONNECT_REQ) {
-                if (number_of_connections < max_connections) {
-                    fprintf(stdout,"[INFO] Attempting to accept %d\n", input->sender_id);
-                    rdp_accept(input, addr_con, socket_fd);
-                } else {
-                    //send packet 0x20 == refuses connect request
-                    fprintf(stderr, "[ERROR] NOT CONENCTED %d %d\n", input->sender_id, input->recv_id);
+            /*Getting input and reformatting it*/
+            if (FD_ISSET(socket_fd, &readFD)) {
+
+                fprintf(stdout,"[INFO] Trying to recevie data\n");
+                rc = recvfrom(socket_fd, input, sizeof(struct Packet),
+                        0, (struct sockaddr *)&addr_con, &sock_addrsize);
+                        // clients IP would be inet_ntoa(addr_cli.sin_addr) and port ntohn(addr_cli.sin_port)
+                    check_error(rc, "recvfrom");
+                    fprintf(stdout,"[INFO] Recevied data %d bytes\n", rc);
+
+                    fprintf(stderr,"[INFO] Buffer contains flag: %d id %d\n", input->flag, input->sender_id);
+
+                //1. Check if it was a new connect request 
+                if (input->flag & CONNECT_REQ) {
+                    if (number_of_connections < max_connections) {
+                        fprintf(stdout,"[INFO] Attempting to accept %d\n", input->sender_id);
+                        rdp_accept(input, addr_con, socket_fd);
+                    } else {
+                        //send packet 0x20 == refuses connect request
+                        fprintf(stderr, "[ERROR] NOT CONENCTED %d %d\n", input->sender_id, input->recv_id);
+                    }
+                }
+
+                //2. Try to deliver the 'next' packages to all connected rdp-clients
+                    // We recevied an ACK and can start/proceed in sending file to client
+                if (input->flag & ACK_PACK) {
+                    fprintf(stdout,"[INFO] Attempting to send file %d\n");
+                    send_file(input, addr_con);
+                }
+
+                //3. Check if an rdp-connection is closed
+                if(input->flag & CONNECT_TERMINATE) {
+                    // free rdp_connection
+                    fprintf(stdout, "[INFO] DISCONNECTED %d %d\n", input->sender_id, input->recv_id);
+                    rdp_close(input); // closes connection removes from array and frees space
+                }
+
+                //4. if none of this happened, wait ~ either wait 1s or use select() to wait
+                if (0)
+                {
+                    //wait
                 }
             }
-
-            //2. Try to deliver the 'next' packages to all connected rdp-clients
-                // We recevied an ACK and can start/proceed in sending file to client
-            if (input->flag & ACK_PACK) {
-                fprintf(stdout,"[INFO] Attempting to send file %d\n");
-                send_file(input);
-            }
-
-            //3. Check if an rdp-connection is closed
-            if(input->flag & CONNECT_TERMINATE) {
-                // free rdp_connection
-                fprintf(stdout, "[INFO] DISCONNECTED %d %d\n", input->sender_id, input->recv_id);
-                rdp_close(input); // closes connection removes from array and frees space
-            }
-
-            //4. if none of this happened, wait ~ either wait 1s or use select() to wait
-            if (0)
-            {
-                //wait
-            }
-        }
-
+        } else {
+            // send again
+    }
     } while (1);
 
     close(socket_fd);
@@ -170,6 +181,7 @@ int main(int argc, char const *argv[])
     return EXIT_SUCCESS;
 
 }
+
 /* Questions:
     - Where does the ID gets set?
     - What isn't always included in packet?
