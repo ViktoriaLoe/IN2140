@@ -21,30 +21,13 @@ void rdp_read()
     
 }
 
-int rdp_write()
+int rdp_write(int index)
 {
-    // pakke og 
-    char *outoutbuffer;
-    //goes through all connected clients and checks if more needs to be sent
-    for (int i = 0; i < number_of_connections; i ++)
-    {
-        struct Packet *input = malloc(sizeof(struct Packet *));
-        struct rdp_connection *client = active_connections[i];
-
-        /* Reveice a message ffrom client*/
-        int rc = recv(client->client_socketFd, input, BUFFER_SIZE, 0);
-        check_error(rc, "recv");
-        fprintf(stdout,"[INFO] Recevied data %d bytes\n", rc);
-        fprintf(stderr,"[INFO] Buffer contains flag: %d id %d\n", input->flag, input->sender_id);
-
-        FILE *outpufile;
-        //check valid file etc
-
-        int rc = 0;
+    // what should be sent and where as input
         //while (rc = fread())
 
 
-    }   //else if the last packet it sent
+       //else if the last packet it sent
         // send empty packe
 
     return 0;
@@ -72,14 +55,15 @@ struct rdp_connection* rdp_accept(struct Packet *client_con_packet, struct socka
     struct Packet *output_ack = malloc(sizeof(struct Packet *));
 
     /* Checking if ID is valid*/
-    if (!check_valid_id(client_con_packet->sender_id)) {
+    if (check_valid_id(client_con_packet->sender_id)) {
         output_ack = construct_packet(CONNECTION_DEN, 0, 0, 0, client_con_packet->sender_id, 0, 0);
+        fprintf(stderr, "[ERROR] NOT CONENCTED %c\n", output_ack->flag);
         rc = sendto(fd, output_ack, sizeof(struct Packet), 0, (struct sockaddr *)&addr_cli, sockaddr_size);
         check_error(rc, "sendto");
         return NULL;
     }
 
-    fprintf(stderr, "[INFO] CONNECTED %d %d\n", client_con_packet->sender_id, client_con_packet->recv_id);
+    fprintf(stdout, "[INFO] CONNECTED %d %d\n", client_con_packet->sender_id, client_con_packet->recv_id);
     output_ack = construct_packet(CONNECTION_ACC, 0, 0, 0, client_con_packet->sender_id, 0, 0);
 
     // Sendign ack for pack

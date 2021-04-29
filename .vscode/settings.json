@@ -3,6 +3,7 @@
         "string.h": "c",
         "stdio.h": "c",
         "send_packet.h": "c",
-        "socket.h": "c"
+        "socket.h": "c",
+        "netdb.h": "c"
     }
 }

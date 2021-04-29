@@ -28,10 +28,34 @@ void free_infrastructure()
     }
     free(active_connections);
 }
+int find_connection_index(int sender_id)
+{
+    for (int index = 0; index < number_of_connections; index++) {
+        if (active_connections[index]->connection_id == sender_id){
+            return index;
+        }
+    }
+    return -1;
+}
 
 void send_file(struct Packet *input)
 {
-    rdp_write();
+    // pakke og 
+    char *outoutbuffer;
+    //goes through all connected clients and checks if more needs to be sent
+
+    /* Reveice a message ffrom client*/
+    fprintf(stdout,"[INFO] Buffer contains flag: %d id %d\n", input->flag, input->sender_id);
+
+    FILE *outpufile;
+    //check valid file etc
+    int index = find_connection_index(input->sender_id);
+    struct rdp_connection *current_client = active_connections[index];
+    struct sockaddr_in client_ip = current_client->ip_adress;
+
+    int rc = 0;
+    rdp_write(index);
+    
 }
 
 
@@ -83,6 +107,7 @@ int main(int argc, char const *argv[])
     rc = bind(socket_fd, (struct sockaddr *)&addr_con, sizeof(struct sockaddr_in));
     check_error(rc, "bind");
 
+    struct pollfd poll_list[max_connections];
 
     /* MAIN LOOP*/
     do
@@ -95,6 +120,8 @@ int main(int argc, char const *argv[])
         /*Getting input and reformatting it*/
         if (FD_ISSET(socket_fd, &readFD)) {
             fprintf(stdout,"[INFO] Trying to recevie data\n");
+            //struct timeval tv = {60, 0};
+            //rc = poll(poll_list, 2, tv);
             rc = recvfrom(socket_fd, input, sizeof(struct Packet),
                     0, (struct sockaddr *)&addr_con, &sock_addrsize);
                     // clients IP would be inet_ntoa(addr_cli.sin_addr) and port ntohn(addr_cli.sin_port)
@@ -107,6 +134,7 @@ int main(int argc, char const *argv[])
             //1. Check if it was a new connect request 
             if (input->flag & CONNECT_REQ) {
                 if (number_of_connections < max_connections) {
+                    fprintf(stdout,"[INFO] Attempting to accept %d\n", input->sender_id);
                     rdp_accept(input, addr_con, socket_fd);
                 } else {
                     //send packet 0x20 == refuses connect request
@@ -117,6 +145,7 @@ int main(int argc, char const *argv[])
             //2. Try to deliver the 'next' packages to all connected rdp-clients
                 // We recevied an ACK and can start/proceed in sending file to client
             if (input->flag & ACK_PACK) {
+                fprintf(stdout,"[INFO] Attempting to send file %d\n");
                 send_file(input);
             }
 
@@ -134,7 +163,7 @@ int main(int argc, char const *argv[])
             }
         }
 
-    } while (number_of_connections < max_connections+1);
+    } while (1);
 
     close(socket_fd);
     free_infrastructure();

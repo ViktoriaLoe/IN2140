@@ -26,7 +26,7 @@ void my_print_packet(struct Packet *p)
 
     fprintf(stderr,"[INFO] pktseq %d, ackseq %d, sid %d, rid %d\n", p->packet_seq,p->ack_seq, p->sender_id, p->recv_id );
 }
-
+// Change to return buffer
 void my_packet_to_buffer(struct Packet *p, char *buffer)
 {
     memcpy(buffer, p, sizeof(struct Packet));

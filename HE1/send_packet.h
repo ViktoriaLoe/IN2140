@@ -11,6 +11,10 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
+#define _GNU_SOURCE         /* See feature_test_macros(7) */
+#include <signal.h>
+#include <poll.h>
+
 
 
 #define BUFFER_SIZE         1000
