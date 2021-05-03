@@ -41,7 +41,8 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
 
     char *output_buffer = malloc(sizeof(struct Packet));
     my_packet_to_buffer(output, output_buffer);
-
+    
+    fprintf(stdout,"[INFO] output_buffer: %s\n", output_buffer);
     /*Sending packet with file in it*/
     rc = sendto(client->client_socketFd, output_buffer,
         sizeof(output_buffer),
@@ -50,6 +51,8 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
 
        //else if the last packet it sent
         // send empty packe
+
+
     free(client->previous_packet_sent);
     client->previous_packet_sent = output;
     return 0;
@@ -98,7 +101,7 @@ struct rdp_connection* rdp_accept(struct Packet *client_con_packet, struct socka
     client->ip_adress = addr_cli;
     client->connection_id = client_con_packet->sender_id;
     client->packet_seq = 0;
-    client->client_socketFd = 0;
+    client->client_socketFd = fd;
     client->previous_packet_sent = NULL;
     number_of_connections++;
     fprintf(stdout,"[INFO] created rdp struct with id: %d\n", client->connection_id);

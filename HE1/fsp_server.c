@@ -52,17 +52,16 @@ void send_file(struct Packet *input)
 
     struct Packet *output_packet = malloc(sizeof(struct Packet *));
     fprintf(stdout,"[INFO] Attempting create output packet with payload\n");
-    output_packet = construct_packet(DATA_PACK, input->ack_seq, current_client->packet_seq, 0, input->sender_id, 0, 0);
 
-    print_packet(output_packet);
-    int rc = 0;
     int ack = input->ack_seq*1000;
-
     fgets(output_buffer+ack, 999, output_file);
     puts(output_buffer);
 
     // memset(buf, 0, BUFLEN);
-    output_packet->payload = output_buffer;
+    output_packet = construct_packet(DATA_PACK, input->ack_seq, 
+                        current_client->packet_seq, 0, input->sender_id, 
+                        strlen(output_buffer), output_buffer);
+    fprintf(stdout,"[INFO] meta: %d payload: %s\n", output_packet->metadata, output_packet->payload);
 
     //bzero()
 

@@ -54,8 +54,6 @@ int main(int argc, char const *argv[])
     /*Making packets to send*/
     struct Packet *connection_attempt   = malloc(sizeof(struct Packet *));
     connection_attempt  = construct_packet(CONNECT_REQ, 1, 1, id, 200, 0, 0);
-    // my_print_packet(connection_attempt);
-    // fprintf(stderr,"[INFO] Packet contains flag: %d id: %d\n", connection_attempt->flag, connection_attempt->sender_id);
 
     /* Sending packet using rdp_write*/
     char *buffer = malloc(sizeof(struct Packet)+10);
@@ -101,12 +99,15 @@ int main(int argc, char const *argv[])
         FD_SET(udpSocket_fd, &server_fd_set);
 
         struct timeval tv = {100, 0};
-        if (select(FD_SETSIZE + 1, &server_fd_set, NULL, NULL, &tv) < 0) {
+        select(FD_SETSIZE + 1, &server_fd_set, NULL, NULL, &tv);
+
+        if (FD_ISSET(udpSocket_fd, &server_fd_set)) {
             // FD is used, recevie input buffer
             rc = recvfrom(udpSocket_fd, input, BUFFER_SIZE, 0, 
                     (struct sockaddr*)&server_fd, &sockaddr_size);
             check_error(rc, "recvfrom");
             
+            fprintf(stdout,"[INFO] input->flag: %d meta: %d payload %s\n", input->flag, input->metadata, input->payload);
             if(input->flag & CONNECT_TERMINATE) {
                 fprintf(stderr,"[ERROR] NOT CONNECTED TO SERVER\n");
                 return EXIT_FAILURE;
