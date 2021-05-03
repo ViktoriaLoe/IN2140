@@ -38,6 +38,7 @@ struct Packet
 //Prints out meaning of files in buffer
 void                    my_print_packet(struct Packet *p);
 
+void print_packet(struct Packet *packet);
 //Calls construct_packet to create packet out of input_buffer
 
 //Creates sendable packet to output_buffer
@@ -51,13 +52,16 @@ struct Packet*          construct_packet(unsigned char flag, unsigned char pktse
 /* RDP FILES*/
 struct rdp_connection { //add to header potentially 
     struct sockaddr_in ip_adress;   // what socket will bind to 
-    int connection_id, bytes_sent;              // used to identify client
+    int connection_id, packet_seq;              // used to identify client
     int client_socketFd;
-    struct Packet *packets; // linked list with all packets to confirm order of arrival 
+    struct Packet *previous_packet_sent; // last packet sent to client, used when no ack is receieved in time 
 };
 
 void check_error(int ret, char *msg);
+
+// Global variables
 struct rdp_connection **active_connections;
+struct sockaddr_in server_fd_global;
 int number_of_connections;
 int max_connections; 
 
@@ -65,9 +69,9 @@ int max_connections;
 struct rdp_connection*  rdp_accept(struct Packet *packet, struct sockaddr_in addr_cli, int fd);
 
 // writes to server 
-int                     rdp_write_server(struct sockaddr_in server, char *buffer);
+int                     rdp_write_server(int socket_fd, char *buffer);
 // writes to client
-int rdp_write(struct sockaddr_in client_fd, char *output);
+int rdp_write(struct rdp_connection *client_fd, struct Packet *output);
 
 //
 void                    rdp_read();
