@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include "send_packet.h"
 
-#define BUFLEN 1000 
+#define BUFLEN 1024 
 
 //An overview over all active connection to different clients, needs to be dynamically allocated
 int socket_fd;
@@ -30,7 +30,9 @@ void free_infrastructure()
         free(active_connections[i]);
     }
     free(active_connections);
+    free(file_buffer);
 }
+
 int find_connection_index(int sender_id)
 {
     for (int index = 0; index < number_of_connections; index++) {
@@ -44,7 +46,6 @@ int find_connection_index(int sender_id)
 /*Creates buffer from file and packet to send to ready client */
 void send_file(struct Packet *input)
 {
-    char output_buffer[1000];
 
     //check valid file etc
     int index = find_connection_index(input->sender_id);
@@ -61,12 +62,13 @@ void send_file(struct Packet *input)
     output_packet = construct_packet(DATA_PACK, input->ack_seq, 
                         current_client->packet_seq, 0, input->sender_id, 
                         strlen(output_buffer), output_buffer);
-    fprintf(stdout,"[INFO] meta: %d payload: %s\n", output_packet->metadata, output_packet->payload);
 
     //bzero()
 
     /*Sending what is in buffer*/
     rdp_write(current_client, output_packet);
+    printf("Sent packet\n");
+    free(output_packet);
 
 }
 
@@ -115,7 +117,7 @@ int main(int argc, char const *argv[])
     check_error(rc, "bind");
 
     /* MAIN LOOP*/
-    struct Packet *input = malloc(sizeof(struct Packet *));
+    struct Packet *input = malloc(sizeof(struct Packet));
     struct rdp_connection *new_connection = malloc(sizeof(struct rdp_connection *));
 
 
@@ -136,17 +138,18 @@ int main(int argc, char const *argv[])
             rc = recvfrom(socket_fd, input, sizeof(struct Packet),
                     0, (struct sockaddr *)&addr_con, &sock_addrsize);
                     // clients IP would be inet_ntoa(addr_cli.sin_addr) and port ntohn(addr_cli.sin_port)
-                check_error(rc, "recvfrom");
-                fprintf(stdout,"[INFO] Recevied data %d bytes\n", rc);
-
-                fprintf(stderr,"[INFO] Buffer contains flag: %d id %d\n", input->flag, input->sender_id);
+                    check_error(rc, "recvfrom");
+                    fprintf(stdout,"[INFO] Recevied data %d bytes from id:%d\n", rc, input->sender_id);
+                // fprintf(stderr,"[INFO] Buffer contains flag: %d id %d\n", input->flag, input->sender_id);
 
             //1. Check if it was a new connect request 
             if (input->flag & CONNECT_REQ) {
                 if (number_of_connections < max_connections) {
                     fprintf(stdout,"[INFO] Attempting to accept %d\n", input->sender_id);
                     new_connection = rdp_accept(input, addr_con, socket_fd);
+                    send_file(input);
                     //just start writing file here?
+                    printf("We sent first part of the file!\n");
 
                 } else {
                     //send packet 0x20 == refuses connect request
@@ -171,18 +174,20 @@ int main(int argc, char const *argv[])
         }
         else { //timed out sending again
             fprintf(stdout,"[INFO] Waited too long!\n");
-            fprintf(stdout,"[INFO] Sending previous packet again\n");
-            if(new_connection->previous_packet_sent != NULL) {
-                rdp_write(new_connection, new_connection->previous_packet_sent);
-            }
-            else if (number_of_connections == 0) {
+            if (number_of_connections == 0) {
                 fprintf(stdout,"[INFO] Nothing to do, number_of_connections: %d\n", number_of_connections);
+            }
+            else if(new_connection->previous_packet_sent != NULL) {
+                fprintf(stdout,"[INFO] Sending previous packet again\n");
+                rdp_write(new_connection, new_connection->previous_packet_sent);
             }
         }
     } while (1);
 
     close(socket_fd);
     free_infrastructure();
+    free(input);
+    free(new_connection);
     return EXIT_SUCCESS;
 
 

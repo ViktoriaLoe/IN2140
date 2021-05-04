@@ -21,9 +21,10 @@ void rdp_read()
     
 }
 
-int rdp_write_server(int socket_fd, char *output)
+int rdp_write_server(int socket_fd, struct Packet *output)
 {
     int rc = 0;
+    memcpy(output_buffer, output, sizeof(struct Packet)+1024);
     rc = sendto(socket_fd,                           /*socket*/
                 output,                             /*message*/
                 sizeof(output),                     /*amount of bytes*/
@@ -37,26 +38,23 @@ int rdp_write_server(int socket_fd, char *output)
 int rdp_write(struct rdp_connection *client, struct Packet *output)
 {
     int rc = 0;
-    fprintf(stdout,"[INFO] Attempting to write to client\n payload: %s\n", output->payload);
 
-    char *output_buffer = malloc(sizeof(struct Packet));
     my_packet_to_buffer(output, output_buffer);
-    
-    fprintf(stdout,"[INFO] output_buffer: %s\n", output_buffer);
+
     /*Sending packet with file in it*/
     rc = sendto(client->client_socketFd, output_buffer,
         sizeof(output_buffer),
         0, (struct sockaddr *)&client->ip_adress, sizeof(struct sockaddr_in));
-    check_error(rc, "sendto");
+        check_error(rc, "sendto");
 
        //else if the last packet it sent
         // send empty packe
 
-
-    free(client->previous_packet_sent);
-    client->previous_packet_sent = output;
+    //free(client->previous_packet_sent);
+    //client->previous_packet_sent = output;
     return 0;
 }
+
 
 int check_valid_id(int id)
 {
@@ -78,7 +76,7 @@ struct rdp_connection* rdp_accept(struct Packet *client_con_packet, struct socka
 
     socklen_t sockaddr_size = sizeof(struct sockaddr);
 
-    struct Packet output_packet = {CONNECTION_DEN, 0, 0, 0, client_con_packet->sender_id, 0, 0};
+    struct Packet output_packet = {CONNECTION_DEN, 0, 0, 0, 0, client_con_packet->sender_id, 50, 0};
     /* Checking if ID is valid*/
     if (check_valid_id(client_con_packet->sender_id)) {
         fprintf(stderr, "[ERROR] NOT CONENCTED %c\n", client_con_packet->flag);
@@ -91,6 +89,7 @@ struct rdp_connection* rdp_accept(struct Packet *client_con_packet, struct socka
     output_packet.flag = CONNECTION_ACC; 
 
     // Sendign ack for pack
+
     rc = sendto(fd, &output_packet, sizeof(struct Packet), 0, (struct sockaddr *)&addr_cli, sockaddr_size);
     check_error(rc, "sendto");
 

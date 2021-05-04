@@ -17,7 +17,7 @@
 
 
 
-#define BUFFER_SIZE         1000
+#define BUFFER_SIZE         1024
 #define CONNECT_REQ         0x01
 #define CONNECT_TERMINATE   0x02
 #define DATA_PACK           0x04
@@ -29,7 +29,7 @@
 struct Packet
 {
     unsigned char flag, packet_seq, ack_seq, unused;
-    int sender_id, recv_id, metadata ;
+    int sender_id, recv_id, metadata;
     // if flag == 0c04 then metadata is length of packet + payload in bytes
     // if it's +x20 then metadata gives an itnerger value that indicates the reason for refusing the request
     char *payload; // metadata is size, only for flag == 0x04
@@ -41,6 +41,7 @@ void                    my_print_packet(struct Packet *p);
 void print_packet(struct Packet *packet);
 //Calls construct_packet to create packet out of input_buffer
 
+void buffer_to_packet(char *buffer, struct Packet *p);
 //Creates sendable packet to output_buffer
 void             my_packet_to_buffer(struct Packet *p, char *buffer);
 
@@ -64,12 +65,13 @@ struct rdp_connection **active_connections;
 struct sockaddr_in server_fd_global;
 int number_of_connections;
 int max_connections; 
+char output_buffer[1024];
 
 // accepts incoming network requests 
 struct rdp_connection*  rdp_accept(struct Packet *packet, struct sockaddr_in addr_cli, int fd);
 
 // writes to server 
-int                     rdp_write_server(int socket_fd, char *buffer);
+int                     rdp_write_server(int socket_fd, struct Packet *buffer);
 // writes to client
 int rdp_write(struct rdp_connection *client_fd, struct Packet *output);
 

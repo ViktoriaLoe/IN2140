@@ -7,7 +7,6 @@
 #include <time.h>
 
 
-#define BUFFER_SIZE 1000
 
 
 
@@ -27,15 +26,15 @@ int main(int argc, char const *argv[])
     struct sockaddr_in server_fd;
     int id;
     char filename[20];
+    char file_payload[1000];
+    char *input_buffer;
     FILE *filep;
-
 
     if (argc < 4)
     {
         fprintf(stderr, "[ERROR]Usage: %s <server-ip> <port-number> <loss-prob>\n", argv[0]);
         return EXIT_SUCCESS;
     }
-
 
     /*Assigning input variables*/ 
     socklen_t sockaddr_size = sizeof(struct sockaddr);
@@ -52,46 +51,28 @@ int main(int argc, char const *argv[])
     check_error(udpSocket_fd, "socket");
 
     /*Making packets to send*/
-    struct Packet *connection_attempt   = malloc(sizeof(struct Packet *));
-    connection_attempt  = construct_packet(CONNECT_REQ, 1, 1, id, 200, 0, 0);
+    struct Packet *connection_attempt   = malloc(sizeof(struct Packet));
+    connection_attempt  = construct_packet(CONNECT_REQ, 0, 0, id, 0, 0, 0);
 
     /* Sending packet using rdp_write*/
-    char *buffer = malloc(sizeof(struct Packet)+10);
-    my_packet_to_buffer(connection_attempt, buffer);
-    
-    rc = rdp_write_server(udpSocket_fd, buffer);
+    //my_packet_to_buffer(connection_attempt, buffer);
+    memcpy(output_buffer, connection_attempt, 8);
+    rc = rdp_write_server(udpSocket_fd, output_buffer);
     check_error(rc, "sendto");
     fprintf(stderr, "[INFO] Sent %d bytes\n", rc);
     
-    /* Receive answer for connection request */
-    struct Packet *input = malloc(sizeof(struct Packet *));
-    rc = recvfrom(udpSocket_fd, input, BUFFER_SIZE, 
-                0, (struct sockaddr*)&server_fd, &sockaddr_size);
-        check_error(rc, "recvfrom");
-
-
-    //Creating ack_packet
-    struct Packet *ack_pack             = malloc(sizeof(struct Packet *));
-    ack_pack            = construct_packet(ACK_PACK, 0, 0, id, 200, 0, 0);
-    char *buffer_ack = malloc(sizeof(struct Packet));
-    my_packet_to_buffer(ack_pack, buffer_ack);
-
-    //Received accept, send ack
-    if (input->flag & CONNECTION_ACC) { 
-        fprintf(stdout, "[SUCCESS] CONNECTED TO SERVER ID: %d. sending ack\n", id);
-
-    // dont think I need to send this ack!
-        rc = rdp_write_server(udpSocket_fd, buffer_ack);
-        check_error(rc, "sendto");
-    }
-    else {
-        fprintf(stderr," [ERROR]: NOT CONNECTED id: %d\n", id);
-        return EXIT_FAILURE;
-    }
     /*Opening file in write-mode*/
     snprintf(filename, 28, "kernal_file_%d.txt", id %20);
     filep = fopen(filename, "w+");
     //check_error(filep, "fopen");
+
+    // input packet and ack_packet
+    struct Packet *input = malloc(sizeof(struct Packet ) + 2000);
+    struct Packet *ack_pack             = malloc(sizeof(struct Packet)+BUFFER_SIZE);
+
+    ack_pack            = construct_packet(ACK_PACK, 0, 0, id, 200, 0, 0);
+    my_packet_to_buffer(ack_pack, output_buffer);
+
 
     /* Main loop for file receiving (select timeout if nothing is recevied ) */
     do {
@@ -103,40 +84,57 @@ int main(int argc, char const *argv[])
 
         if (FD_ISSET(udpSocket_fd, &server_fd_set)) {
             // FD is used, recevie input buffer
-            rc = recvfrom(udpSocket_fd, input, BUFFER_SIZE, 0, 
+            printf("Receving input\n");
+            rc = recvfrom(udpSocket_fd, input_buffer, sizeof(struct Packet)+BUFFER_SIZE, 0,
                     (struct sockaddr*)&server_fd, &sockaddr_size);
-            check_error(rc, "recvfrom");
+                    check_error(rc, "recvfrom");
             
-            fprintf(stdout,"[INFO] input->flag: %d meta: %d payload %s\n", input->flag, input->metadata, input->payload);
+            buffer_to_packet(input_buffer, input);
+            //Received accept
+            if (input->flag & CONNECTION_ACC) { 
+                fprintf(stdout, "[SUCCESS] CONNECTED TO SERVER ID: %d meta %d\n", id, input->metadata);
+            }
+
+            fprintf(stdout,"[INFO] flag: %d meta: %d \n",input->flag, input->metadata);
+
+            // Received conenciton terminate
             if(input->flag & CONNECT_TERMINATE) {
                 fprintf(stderr,"[ERROR] NOT CONNECTED TO SERVER\n");
                 return EXIT_FAILURE;
             }
 
             // check if data pack was the one we expected
-            else if (input->packet_seq > ack_pack->packet_seq) {
+            if (input->flag & DATA_PACK  
+                /* && input->packet_seq >= ack_pack->packet_seq*/) 
+            {
+                fprintf(stdout,"[INFO] We received data meta: %d\n", input->metadata );
                 ack_pack->packet_seq = input->packet_seq;
                 ack_pack->ack_seq++;
-                fprintf(stdout,"[INFO] We received pauload %s\n", input->payload);
+
+                print_packet(input);
                 fputs(input->payload, filep); //writes buffer into filep
                 // update seqence in ack_pack
                 // send ack on recevied data 
+                rdp_write_server(udpSocket_fd, ack_pack);
                 //rc = sendto()
+                continue;
             }
+
             else {
+                printf("Something else\n");
                 // wasnt the right data pack!?
                 // send ack agaig
             }
 
             // check if its an empty packet
-            if (input->flag == DATA_PACK && sizeof(input->payload) < 1){
+            //if (input->flag == DATA_PACK && sizeof(input->payload) < 1){
                 // send 0x02 terminate
                 // save file etc
-            }
+            //}
 
         }
         else { // we waited too long and recevied nothing. Send packet again
-            fprintf(stdout,"[INFO] We waited too long, sending ACK agian\n");
+            //fprintf(stdout,"[INFO] We waited too long\n");
             //rc = sendto(udpSocket_fd, my_packet_to_buffer(ack_pack, buffer))
         }
         
@@ -144,8 +142,10 @@ int main(int argc, char const *argv[])
     } while (1);
     
 
-
-
+    printf("End of main\n");
+    free(connection_attempt);
+    free(input);
+    free(ack_pack);
     close(udpSocket_fd);
     return EXIT_SUCCESS;
 }

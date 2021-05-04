@@ -27,13 +27,36 @@ void my_print_packet(struct Packet *p)
     fprintf(stderr,"[INFO] pktseq %d, ackseq %d, sid %d, rid %d\n", p->packet_seq,p->ack_seq, p->sender_id, p->recv_id );
 }
 void print_packet(struct Packet *packet)
-{
-    fprintf(stdout,"[INFO] packet flag: %d payload size %d payload %s\n", packet->flag, packet->metadata, packet->payload);
+{   
+    char buf[1000];
+    fprintf(stdout,"[INFO] \n   id:%d %d\n   packet flag: %d \n  payload size %d payload %s\n", packet->recv_id, packet->sender_id, packet->flag, packet->metadata, packet->payload);
+    memcpy(buf, packet + sizeof(struct Packet) - 8, packet->metadata);
+    fprintf(stdout,"[INFO] packet: %s\n", buf);
+    packet->payload = buf;
 }
+
+void buffer_to_packet(char *buffer, struct Packet *p)
+{
+    char buf[1000];
+    printf("buffer %s\n", buffer + sizeof(struct Packet)-sizeof(char*));
+    memcpy(buf, buffer + sizeof(struct Packet) - sizeof(char *), 1000);
+    printf("buf %s\n", buf);
+}
+
 // Change to return buffer
 void my_packet_to_buffer(struct Packet *p, char *buffer)
 {
-    memcpy(buffer, p, sizeof(struct Packet));
+    fprintf(stdout,"[INFO] Attempting to write to client id: %d payload %s\n", p->recv_id, p->payload);
+    //change into htons
+    memcpy(buffer, p, sizeof(char)*4);
+    // memcpy(buffer + 4, p->sender_id, sizeof(int));
+    // memcpy(buffer + 8, p->recv_id, sizeof(int));
+    // memcpy(buffer + 16, p->metadata, sizeof(int));
+    memcpy(buffer + 4, p + 4, sizeof(int)*3);
+
+    if (p->flag & DATA_PACK) {
+        memcpy(buffer + sizeof(struct Packet) - 8, p->payload, BUFFER_SIZE);
+    }
 }
 
 struct Packet* construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload)
@@ -52,10 +75,11 @@ struct Packet* construct_packet(unsigned char flag, unsigned char pktseq, unsign
     packet->recv_id = rid;
     packet->metadata = meta;
 
-    if (flag & 0x04) // Only case where payload is allowed
+    if (flag & DATA_PACK) // Only case where payload is allowed
     {
         packet->payload = malloc(sizeof(char) * meta);
         packet->payload = payload;
+        fprintf(stdout,"[INFO] constructing packet! meta %d payload: %s\n",packet->metadata, packet->payload);
     }
 
     return packet;
