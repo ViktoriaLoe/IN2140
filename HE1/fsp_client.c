@@ -38,7 +38,6 @@ int main(int argc, char const *argv[])
     server_fd.sin_port = htons(atoi(argv[2]));
     server_fd.sin_addr.s_addr = inet_addr(argv[1]);
     //set_loss_probability(atof(argv[3]));
-
     output_buffer_c = malloc(sizeof(struct Packet)+ BUFFER_SIZE); 
     server_fd_global = server_fd;
 
@@ -68,7 +67,8 @@ int main(int argc, char const *argv[])
     struct Packet *ack_pack             = malloc(sizeof(struct Packet)+BUFFER_SIZE);
 
     ack_pack            = construct_packet(ACK_PACK, 0, 0, id, 200, 0, 0);
-    output_buffer_c = my_packet_to_buffer(ack_pack);
+
+
 
     /* Main loop for file receiving (select timeout if nothing is recevied ) */
     do {
@@ -104,6 +104,7 @@ int main(int argc, char const *argv[])
             {
                 //Correct data packet was recevied
                 if (input->packet_seq == ack_pack->packet_seq) {
+                    // Data pack is empty
                     if (input->metadata == 0) {
                         //send connection terminate
                         printf("We got an Empty packet! DONE\n");

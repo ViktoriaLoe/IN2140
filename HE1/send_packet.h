@@ -63,6 +63,7 @@ struct rdp_connection **active_connections;
 struct sockaddr_in server_fd_global;
 int number_of_connections;
 int max_connections; 
+int file_length;
 char *output_buffer; 
 char *output_buffer_c;
 

@@ -33,7 +33,6 @@ void buffer_to_packet(char *final_buffer, struct Packet *p)
 // Deseriaizing
 char * my_packet_to_buffer(struct Packet *p )
 {
-    fprintf(stdout,"[INFO] Attempting to write to client id: %d payload %s\n", p->recv_id, p->payload);
     //change into htons
     char *final_buffer;
 
@@ -46,7 +45,6 @@ char * my_packet_to_buffer(struct Packet *p )
             final_buffer = malloc(p->metadata + sizeof(struct Packet));
             memcpy(final_buffer, p,                              sizeof(struct Packet));
             memcpy(final_buffer + sizeof(struct Packet), p->payload,  p->metadata);
-            printf("memcoped\n");
         }
     }
     else {

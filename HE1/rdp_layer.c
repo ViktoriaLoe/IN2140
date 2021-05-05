@@ -40,11 +40,6 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
 
     output_buffer = my_packet_to_buffer(output);
 
-    struct Packet *test = malloc(sizeof(struct Packet) + BUFFER_SIZE);
-    printf("switching it back\n");
-    buffer_to_packet(output_buffer, test);
-    //printf("flag %d payload %s\n", test->flag, test->payload); DET FUNGERERE Å GJØRE OM TILBAKE
-
     /*Sending packet with file in it*/
     rc = sendto(client->client_socketFd, output_buffer,
         sizeof(struct Packet) + 1000,
@@ -56,7 +51,7 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
 
     //free(client->previous_packet_sent);
     //client->previous_packet_sent = output;
-    return 0;
+    return rc;
 }
 
 
@@ -84,21 +79,19 @@ struct rdp_connection* rdp_accept(struct Packet *client_con_packet, struct socka
 
     if (check_valid_id(client_con_packet->sender_id) || number_of_connections >= max_connections) {
         fprintf(stderr, "[ERROR] NOT CONENCTED %c\n", client_con_packet->flag);
+
+        // data structure for this client isnt created, so to avoid sending a lot of input to rdp_write I'm sending it from this function
         rc = sendto(fd, &output_packet, sizeof(struct Packet), 0, (struct sockaddr *)&addr_cli, sockaddr_size);
-        check_error(rc, "sendto");
+            check_error(rc, "sendto");
         return NULL;
     }
 
     fprintf(stdout, "[SUCCESS] CONNECTED %d %d\n", client_con_packet->sender_id, client_con_packet->recv_id);
     output_packet.flag = CONNECTION_ACC; 
 
-    // Sendign ack for pack
-
-    rc = sendto(fd, &output_packet, sizeof(struct Packet), 0, (struct sockaddr *)&addr_cli, sockaddr_size);
-    check_error(rc, "sendto");
-
     /*Allocating space for conneciton datastructure*/
     struct rdp_connection *client = malloc(sizeof(struct rdp_connection));
+
     // Initializing datastructure
     active_connections[number_of_connections] = client; // Adding new connection to global array
     client->ip_adress = addr_cli;
@@ -106,8 +99,12 @@ struct rdp_connection* rdp_accept(struct Packet *client_con_packet, struct socka
     client->packet_seq = 0;
     client->client_socketFd = fd;
     client->previous_packet_sent = NULL;
-    number_of_connections++;
     fprintf(stdout,"[INFO] created rdp struct with id: %d\n", client->connection_id);
+
+    // Sendign ack for pack
+    rc = rdp_write(active_connections[number_of_connections], &output_packet);
+        check_error(rc, "sendto");
+        number_of_connections++;
 
 
     return client;

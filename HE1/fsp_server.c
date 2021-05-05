@@ -42,27 +42,36 @@ int find_connection_index(int sender_id)
 }
 
 /*Creates buffer from file and packet to send to ready client */
-void send_file(struct Packet *input)
+void send_file(struct Packet *input, struct rdp_connection *client)
 {
-    //check valid file etc
-    int index = find_connection_index(input->sender_id);
-    struct rdp_connection *current_client = active_connections[index];
-
+    int rc = 0;
+    // Finding client so we can send file to the correct place
+    struct rdp_connection *current_client = client;
+    if (client == NULL) {
+        int index = find_connection_index(input->sender_id);
+        current_client = active_connections[index];
+    }
     struct Packet *output_packet = malloc(sizeof(struct Packet *));
-    fprintf(stdout,"[INFO] Attempting create output packet with payload\n");
 
+    // checking if it is the ACK we expected
+    if (input->packet_seq <= current_client->packet_seq) {
+        rdp_write(current_client, current_client->previous_packet_sent);
+        return;
+    }
     int ack = input->ack_seq*1000;
-    fgets(output_buffer+ack, 999, output_file);
+    //fgets(output_buffer+ack, 999, output_file);
+    rc = fread(output_buffer, sizeof(char), 999, output_file + ack);
+    check_error(rc, "fread");
     puts(output_buffer);
 
     // memset(buf, 0, BUFLEN);
     output_packet = construct_packet(DATA_PACK, input->ack_seq, 
                         current_client->packet_seq, 0, input->sender_id, 
-                        strlen(output_buffer), output_buffer);
+                        rc, output_buffer);
 
-    //bzero()
 
     /*Sending what is in buffer*/
+    current_client->previous_packet_sent = output_packet;
     rdp_write(current_client, output_packet);
     printf("Sent packet\n");
     free(output_packet);
@@ -92,7 +101,7 @@ int main(int argc, char const *argv[])
 
     output_file = fopen(argv[2], "rb");
     fseek(output_file, 0L, SEEK_END);
-    int file_length = ftell(output_file);
+    file_length = ftell(output_file);
     rewind(output_file);
 
     max_connections = atoi(argv[3]);
@@ -122,7 +131,7 @@ int main(int argc, char const *argv[])
     {
         FD_ZERO(&readFD); //clear the read fd
         FD_SET(socket_fd, &readFD);
-        fprintf(stdout,"\n[INFO] Using select and waiting\n");
+        fprintf(stdout,"\n\n[INFO] Using select and waiting\n");
 
         //listening to FD for incoming packet
         struct timeval tv = {100, 0};
@@ -140,24 +149,24 @@ int main(int argc, char const *argv[])
 
             //1. Check if it was a new connect request 
             if (input->flag & CONNECT_REQ) {
-                if (number_of_connections < max_connections) {
-                    fprintf(stdout,"[INFO] Attempting to accept %d\n", input->sender_id);
-                    new_connection = rdp_accept(input, addr_con, socket_fd);
-                    send_file(input);
-                    //just start writing file here?
-                    printf("We sent first part of the file!\n");
+                fprintf(stdout,"[INFO] Attempting to accept %d\n", input->sender_id);
+                new_connection = rdp_accept(input, addr_con, socket_fd);
 
-                } else {
-                    //send packet 0x20 == refuses connect request
-                    fprintf(stderr, "[ERROR] NOT CONENCTED %d %d\n", input->sender_id, input->recv_id);
-                }
+                // If connection was successful we can start sending file, 0x10 packs cannot be dropped
+                if (new_connection != NULL) {
+                    send_file(input, new_connection);
+                    continue;
+                } 
+                fprintf(stderr, "[ERROR] NOT CONENCTED %d %d\n", input->sender_id, input->recv_id);
+                
             }
 
             //2. Try to deliver the 'next' packages to all connected rdp-clients
                 // We recevied an ACK and can start/proceed in sending file to client
             if (input->flag & ACK_PACK) {
                 fprintf(stdout,"[INFO] Attempting to send file \n");
-                send_file(input);
+                send_file(input, NULL);
+                continue;
             }
             
             //3. Check if an rdp-connection is closed
@@ -165,6 +174,7 @@ int main(int argc, char const *argv[])
                 // free rdp_connection
                 fprintf(stdout, "[INFO] DISCONNECTED %d %d\n", input->sender_id, input->recv_id);
                 rdp_close(input); // closes connection removes from array and frees space
+                break;
             }
 
         }
@@ -172,8 +182,9 @@ int main(int argc, char const *argv[])
             fprintf(stdout,"[INFO] Waited too long!\n");
             if (number_of_connections == 0) {
                 fprintf(stdout,"[INFO] Nothing to do, number_of_connections: %d\n", number_of_connections);
+                continue;
             }
-            else if(new_connection->previous_packet_sent != NULL) {
+            if (new_connection->previous_packet_sent != NULL) {
                 fprintf(stdout,"[INFO] Sending previous packet again\n");
                 rdp_write(new_connection, new_connection->previous_packet_sent);
             }
