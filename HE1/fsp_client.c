@@ -7,9 +7,6 @@
 #include <time.h>
 
 
-
-
-
 void check_error(int ret, char *msg) {
     if (ret == -1 ) {
         fprintf(stderr, "[ERROR] An error has occurred attempting function: %s\n", msg);
@@ -26,8 +23,7 @@ int main(int argc, char const *argv[])
     struct sockaddr_in server_fd;
     int id;
     char filename[20];
-    char file_payload[1000];
-    char *input_buffer;
+    char input_buffer[1024];
     FILE *filep;
 
     if (argc < 4)
@@ -42,7 +38,10 @@ int main(int argc, char const *argv[])
     server_fd.sin_port = htons(atoi(argv[2]));
     server_fd.sin_addr.s_addr = inet_addr(argv[1]);
     //set_loss_probability(atof(argv[3]));
+
+    output_buffer_c = malloc(sizeof(struct Packet)+ BUFFER_SIZE); 
     server_fd_global = server_fd;
+
     srand(time(0));
     id = rand() % 1000;
 
@@ -55,11 +54,9 @@ int main(int argc, char const *argv[])
     connection_attempt  = construct_packet(CONNECT_REQ, 0, 0, id, 0, 0, 0);
 
     /* Sending packet using rdp_write*/
-    //my_packet_to_buffer(connection_attempt, buffer);
-    memcpy(output_buffer, connection_attempt, 8);
-    rc = rdp_write_server(udpSocket_fd, output_buffer);
-    check_error(rc, "sendto");
-    fprintf(stderr, "[INFO] Sent %d bytes\n", rc);
+    rc = rdp_write_server(udpSocket_fd, connection_attempt);
+        check_error(rc, "sendto");
+        fprintf(stderr, "[INFO] Sent %d bytes\n", rc);
     
     /*Opening file in write-mode*/
     snprintf(filename, 28, "kernal_file_%d.txt", id %20);
@@ -71,8 +68,7 @@ int main(int argc, char const *argv[])
     struct Packet *ack_pack             = malloc(sizeof(struct Packet)+BUFFER_SIZE);
 
     ack_pack            = construct_packet(ACK_PACK, 0, 0, id, 200, 0, 0);
-    my_packet_to_buffer(ack_pack, output_buffer);
-
+    output_buffer_c = my_packet_to_buffer(ack_pack);
 
     /* Main loop for file receiving (select timeout if nothing is recevied ) */
     do {
@@ -84,61 +80,64 @@ int main(int argc, char const *argv[])
 
         if (FD_ISSET(udpSocket_fd, &server_fd_set)) {
             // FD is used, recevie input buffer
-            printf("Receving input\n");
-            rc = recvfrom(udpSocket_fd, input_buffer, sizeof(struct Packet)+BUFFER_SIZE, 0,
+            printf("\nReceving input\n");
+            rc = recvfrom(udpSocket_fd, input_buffer, sizeof(struct Packet)+ 1024, 0,
                     (struct sockaddr*)&server_fd, &sockaddr_size);
                     check_error(rc, "recvfrom");
             
             buffer_to_packet(input_buffer, input);
+
             //Received accept
             if (input->flag & CONNECTION_ACC) { 
                 fprintf(stdout, "[SUCCESS] CONNECTED TO SERVER ID: %d meta %d\n", id, input->metadata);
+                continue;
             }
 
-            fprintf(stdout,"[INFO] flag: %d meta: %d \n",input->flag, input->metadata);
-
             // Received conenciton terminate
-            if(input->flag & CONNECT_TERMINATE) {
+            if(input->flag & CONNECTION_DEN) {
                 fprintf(stderr,"[ERROR] NOT CONNECTED TO SERVER\n");
                 return EXIT_FAILURE;
             }
 
             // check if data pack was the one we expected
-            if (input->flag & DATA_PACK  
-                /* && input->packet_seq >= ack_pack->packet_seq*/) 
+            if (input->flag & DATA_PACK) 
             {
-                fprintf(stdout,"[INFO] We received data meta: %d\n", input->metadata );
-                ack_pack->packet_seq = input->packet_seq;
-                ack_pack->ack_seq++;
+                //Correct data packet was recevied
+                if (input->packet_seq == ack_pack->packet_seq) {
+                    if (input->metadata == 0) {
+                        //send connection terminate
+                        printf("We got an Empty packet! DONE\n");
+                        break;
+                    }
+                    ack_pack->packet_seq++;
+                    fputs(input->payload, filep); //writes buffer into filep
 
-                print_packet(input);
-                fputs(input->payload, filep); //writes buffer into filep
-                // update seqence in ack_pack
-                // send ack on recevied data 
-                rdp_write_server(udpSocket_fd, ack_pack);
-                //rc = sendto()
-                continue;
+                    rc = rdp_write_server(udpSocket_fd, ack_pack);
+                    check_error(rc, "sendto");
+                    ack_pack->ack_seq++;
+                    continue;
+                }
+
+                // Old data packet! sending ack again
+                if (input->packet_seq < ack_pack->packet_seq) {
+                    rc = rdp_write_server(udpSocket_fd, ack_pack);
+                        check_error(rc, "sendto");
+                    continue;
+                }
             }
 
             else {
-                printf("Something else\n");
+                printf("This pack is not somethine we saw coming, dont know what to do\n");
                 // wasnt the right data pack!?
                 // send ack agaig
             }
 
-            // check if its an empty packet
-            //if (input->flag == DATA_PACK && sizeof(input->payload) < 1){
-                // send 0x02 terminate
-                // save file etc
-            //}
-
         }
         else { // we waited too long and recevied nothing. Send packet again
-            //fprintf(stdout,"[INFO] We waited too long\n");
+            fprintf(stdout,"[INFO] We waited too long\n");
             //rc = sendto(udpSocket_fd, my_packet_to_buffer(ack_pack, buffer))
         }
         
-
     } while (1);
     
 

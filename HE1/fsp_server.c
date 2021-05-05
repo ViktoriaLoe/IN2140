@@ -12,7 +12,6 @@
 //An overview over all active connection to different clients, needs to be dynamically allocated
 int socket_fd;
 FILE *output_file;
-char *file_buffer; // 
 
 
 
@@ -30,7 +29,6 @@ void free_infrastructure()
         free(active_connections[i]);
     }
     free(active_connections);
-    free(file_buffer);
 }
 
 int find_connection_index(int sender_id)
@@ -46,7 +44,6 @@ int find_connection_index(int sender_id)
 /*Creates buffer from file and packet to send to ready client */
 void send_file(struct Packet *input)
 {
-
     //check valid file etc
     int index = find_connection_index(input->sender_id);
     struct rdp_connection *current_client = active_connections[index];
@@ -90,12 +87,12 @@ int main(int argc, char const *argv[])
     /*Assigning input variables, listening for all adresses*/
     socklen_t sock_addrsize = sizeof(struct sockaddr);
     port = htons(atoi(argv[1]));
+    output_buffer = malloc(sizeof(char)*1024);
 
 
     output_file = fopen(argv[2], "rb");
     fseek(output_file, 0L, SEEK_END);
     int file_length = ftell(output_file);
-    file_buffer = malloc(sizeof(char) * file_length);
     rewind(output_file);
 
     max_connections = atoi(argv[3]);
@@ -134,7 +131,6 @@ int main(int argc, char const *argv[])
         /*Getting input and reformatting it*/
         if (FD_ISSET(socket_fd, &readFD)) {
 
-            fprintf(stdout,"[INFO] Trying to recevie data\n");
             rc = recvfrom(socket_fd, input, sizeof(struct Packet),
                     0, (struct sockaddr *)&addr_con, &sock_addrsize);
                     // clients IP would be inet_ntoa(addr_cli.sin_addr) and port ntohn(addr_cli.sin_port)

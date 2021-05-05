@@ -35,15 +35,13 @@ struct Packet
     char *payload; // metadata is size, only for flag == 0x04
 };
 
-//Prints out meaning of files in buffer
-void                    my_print_packet(struct Packet *p);
 
 void print_packet(struct Packet *packet);
 //Calls construct_packet to create packet out of input_buffer
 
 void buffer_to_packet(char *buffer, struct Packet *p);
 //Creates sendable packet to output_buffer
-void             my_packet_to_buffer(struct Packet *p, char *buffer);
+char *             my_packet_to_buffer(struct Packet *p );
 
 //Constructs packet struct from arguements
 struct Packet*          construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload);
@@ -65,14 +63,16 @@ struct rdp_connection **active_connections;
 struct sockaddr_in server_fd_global;
 int number_of_connections;
 int max_connections; 
-char output_buffer[1024];
+char *output_buffer; 
+char *output_buffer_c;
 
 // accepts incoming network requests 
 struct rdp_connection*  rdp_accept(struct Packet *packet, struct sockaddr_in addr_cli, int fd);
 
-// writes to server 
-int                     rdp_write_server(int socket_fd, struct Packet *buffer);
-// writes to client
+// converts packet into buffer and sends it to server 
+int                     rdp_write_server(int socket_fd, struct Packet *output);
+
+// converts packet into buffer and sends it to client
 int rdp_write(struct rdp_connection *client_fd, struct Packet *output);
 
 //

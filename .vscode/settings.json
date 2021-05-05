@@ -4,6 +4,7 @@
         "stdio.h": "c",
         "send_packet.h": "c",
         "socket.h": "c",
-        "netdb.h": "c"
+        "netdb.h": "c",
+        "stdlib.h": "c"
     }
 }

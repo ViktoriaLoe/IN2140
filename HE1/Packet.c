@@ -10,53 +10,52 @@
 int sequence_number = 100;
 
 
-
-void my_print_packet(struct Packet *p)
-{
-    unsigned char flag = p->flag;
-    int sid = p->sender_id;
-    int rid = p-> recv_id;
-
-    if (flag & 0x01){ fprintf(stderr,"[INFO] This is a connect request, sender: %d receiver: %d\n", sid, rid);}
-    if (flag & 0x02){ fprintf(stderr,"[INFO] This is a connection termination \n");}
-    if (flag & 0x04){ fprintf(stderr,"[INFO] This packet contians data\n");}
-    if (flag & 0x08){ fprintf(stderr,"[INFO] ACK from sender: %d\n", sid);}
-    if (flag & 0x10){ fprintf(stderr,"[INFO] Accept connect request from sender: %d to: %d\n", sid, rid);}
-    if (flag & 0x20){ fprintf(stderr,"[INFO] Denied connect request from sender: %d to: %d\n", sid, rid);} 
-
-    fprintf(stderr,"[INFO] pktseq %d, ackseq %d, sid %d, rid %d\n", p->packet_seq,p->ack_seq, p->sender_id, p->recv_id );
-}
+//prints content of packet
 void print_packet(struct Packet *packet)
 {   
-    char buf[1000];
-    fprintf(stdout,"[INFO] \n   id:%d %d\n   packet flag: %d \n  payload size %d payload %s\n", packet->recv_id, packet->sender_id, packet->flag, packet->metadata, packet->payload);
-    memcpy(buf, packet + sizeof(struct Packet) - 8, packet->metadata);
-    fprintf(stdout,"[INFO] packet: %s\n", buf);
-    packet->payload = buf;
+    fprintf(stdout,"[INFO] \n |    id:%d %d\n |    pkt_s: %d\n |    packet flag: %d\n |    payload size %d \n", packet->recv_id, packet->sender_id,packet->packet_seq, packet->flag, packet->metadata);
+    if (packet->flag  & DATA_PACK) {
+        fprintf(stdout,"[INFO] packet: %s\n", packet->payload);
+    }
 }
-
-void buffer_to_packet(char *buffer, struct Packet *p)
+//serializing
+void buffer_to_packet(char *final_buffer, struct Packet *p)
 {
     char buf[1000];
-    printf("buffer %s\n", buffer + sizeof(struct Packet)-sizeof(char*));
-    memcpy(buf, buffer + sizeof(struct Packet) - sizeof(char *), 1000);
-    printf("buf %s\n", buf);
+    memcpy(p, final_buffer,                          sizeof(struct Packet));
+    if (p->flag & DATA_PACK) {
+        memcpy(buf, final_buffer + sizeof(struct Packet),  p->metadata);
+        p->payload = buf;
+    }
+    print_packet(p);
 }
 
-// Change to return buffer
-void my_packet_to_buffer(struct Packet *p, char *buffer)
+// Deseriaizing
+char * my_packet_to_buffer(struct Packet *p )
 {
     fprintf(stdout,"[INFO] Attempting to write to client id: %d payload %s\n", p->recv_id, p->payload);
     //change into htons
-    memcpy(buffer, p, sizeof(char)*4);
-    // memcpy(buffer + 4, p->sender_id, sizeof(int));
-    // memcpy(buffer + 8, p->recv_id, sizeof(int));
-    // memcpy(buffer + 16, p->metadata, sizeof(int));
-    memcpy(buffer + 4, p + 4, sizeof(int)*3);
+    char *final_buffer;
 
     if (p->flag & DATA_PACK) {
-        memcpy(buffer + sizeof(struct Packet) - 8, p->payload, BUFFER_SIZE);
+        if (p->payload == NULL) {
+            final_buffer = malloc(sizeof (struct Packet));
+            memcpy(final_buffer, p, sizeof(struct Packet));
+        }
+        else {
+            final_buffer = malloc(p->metadata + sizeof(struct Packet));
+            memcpy(final_buffer, p,                              sizeof(struct Packet));
+            memcpy(final_buffer + sizeof(struct Packet), p->payload,  p->metadata);
+            printf("memcoped\n");
+        }
     }
+    else {
+        final_buffer = malloc(sizeof(struct Packet));
+        memcpy(final_buffer, p, sizeof(struct Packet));
+    }
+    fprintf(stdout,"\n[INFO] Sending packet! sending:\n");
+    print_packet(p);
+    return final_buffer;
 }
 
 struct Packet* construct_packet(unsigned char flag, unsigned char pktseq, unsigned char ackseq, int sid, int rid, int meta, char *payload)
