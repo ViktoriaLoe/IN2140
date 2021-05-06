@@ -82,7 +82,7 @@ int                     rdp_write_server(int socket_fd, struct Packet *output);
 // converts packet into buffer and sends it to client
 int rdp_write(struct rdp_connection *client_fd, struct Packet *output);
 
-void rdp_read_from_client(char *input_buffer);
+int rdp_read_from_client(char *input_buffer);
 //
 struct Packet* rdp_read(char *input_buffer, struct Packet *ack_pack, int udpSocket_fd);
 

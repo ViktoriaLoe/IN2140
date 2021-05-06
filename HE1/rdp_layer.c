@@ -22,7 +22,10 @@ int find_connection_index(int sender_id)
 
 void rdp_close(struct Packet *packet)
 {
-    (void)packet;
+    int index = find_connection_index(packet->sender_id);
+    free(active_connections[index]);
+    free(packet->payload);
+
 }
 
 
@@ -46,7 +49,6 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
     int rc = 0;
 
     char *output_buffer_send = malloc (sizeof(struct Packet)+BUFFER_SIZE); 
-
     printf("WRITING\n");
     output_buffer_send = my_packet_to_buffer(output);
 
@@ -59,9 +61,7 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
        //else if the last packet it sent
         // send empty packe
 
-    //free(output_buffer_send);
-    //free(client->previous_packet_sent);
-    //client->previous_packet_sent = output;
+    free(output_buffer_send);
     return rc;
 }
 
@@ -102,10 +102,11 @@ void rdp_send_file(struct Packet *input, struct rdp_connection *current_client)
     current_client->previous_packet_sent = output_packet;
     rdp_write(current_client, output_packet);
     printf("Sent packet\n");
-    //free(output_packet);
+    free(output_packet);
+    free(output_buffer);
 }
 
-void rdp_read_from_client(char *input_buffer)
+int rdp_read_from_client(char *input_buffer)
 {   
     struct Packet *input = malloc(sizeof(struct Packet ) + 2000);
     buffer_to_packet(input_buffer, input);
@@ -128,11 +129,14 @@ void rdp_read_from_client(char *input_buffer)
         // free rdp_connection
         fprintf(stdout, "[INFO] DISCONNECTED \n");
         rdp_close(input); // closes connection removes from array and frees space
+        free(input);
+        return 1;
     }
     else {
         fprintf(stdout,"[INFO] flag INVALID: %d\n", input->flag);
     }
-    
+    free(input);
+    return 0;
 }
 
 //returns NULL if everything is handeled by the RDP layer, if not it return the packet to FSP_client to handle file transfer
@@ -145,11 +149,13 @@ struct Packet* rdp_read(char *input_buffer, struct Packet *ack_pack, int udpSock
 
     if (input->flag & CONNECTION_ACC) {
         fprintf(stdout, "[SUCCESS] CONNECTED TO SERVER ID: %d meta %d\n", input->recv_id , input->metadata);
+        free(input);
         return NULL;
     }
 
     if(input->flag & CONNECTION_DEN) {
         fprintf(stderr,"[ERROR] NOT CONNECTED TO SERVER\n");
+        free(input);
         return NULL;
     }
 
@@ -162,10 +168,12 @@ struct Packet* rdp_read(char *input_buffer, struct Packet *ack_pack, int udpSock
         else { // Old packet, sending ack again
             rc = rdp_write_server(udpSocket_fd, ack_pack);
                 check_error(rc, "sendto");
+            free(input);
             return NULL;
         }
 
     } 
+    free(input);
     return NULL;
 }
 
@@ -203,6 +211,7 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
     /* Checking if it is not a connection attempt*/
     if (!(client_con_packet->flag & CONNECT_REQ)) {
         printf("Not a connection request \n");
+        free(client_con_packet);
         return NULL;
     }
 
@@ -217,6 +226,7 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
         // Data structure for this client isnt created, so to avoid sending a lot of input to rdp_write I'm sending it from this function
         rc = sendto(socket_fd, output_pack, sizeof(struct Packet), 0, (struct sockaddr *)&addr_cli, sockaddr_size);
             check_error(rc, "sendto");
+            free(client_con_packet);
             return NULL;
     }
 
@@ -241,5 +251,6 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
         number_of_connections++;
 
     rdp_send_file(client_con_packet, client);
+    free(client_con_packet);
     return client;
 }

@@ -80,7 +80,7 @@ int main(int argc, char const *argv[])
     /* MAIN LOOP*/
     char input[1024];
     struct rdp_connection *new_connection = malloc(sizeof(struct rdp_connection *));
-
+    int done = 0;
 
     do
     {
@@ -109,7 +109,7 @@ int main(int argc, char const *argv[])
             }
 
             // reading input to see if it was an ACK or CONNECTION termination
-            rdp_read_from_client(input);
+            done = rdp_read_from_client(input);
 
         }
         else { //timed out sending again
@@ -123,11 +123,10 @@ int main(int argc, char const *argv[])
                 rdp_write(new_connection, new_connection->previous_packet_sent);
             }
         }
-    } while (1);
+    } while (done < 1);
 
     close(socket_fd);
     free_infrastructure();
-    free(input);
     free(new_connection);
     return EXIT_SUCCESS;
 
