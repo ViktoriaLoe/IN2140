@@ -90,7 +90,7 @@ int main(int argc, char const *argv[])
             if (input != NULL) {
             
                 // Data pack is empty
-                if (input->metadata == 0) {
+                if (input->metadata <= 1) {
                     printf("We got an Empty packet! DONE\n");
                     connection_attempt->flag = CONNECT_TERMINATE;
                     ack_pack->packet_seq++;

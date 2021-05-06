@@ -48,20 +48,18 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
 {
     int rc = 0;
 
-    char *output_buffer_send = malloc (sizeof(struct Packet)+BUFFER_SIZE); 
     printf("WRITING\n");
-    output_buffer_send = my_packet_to_buffer(output);
+    output_buffer = my_packet_to_buffer(output);
 
     /*Sending packet with file in it*/
-    rc = sendto(client->client_socketFd, output_buffer_send,
-        sizeof(struct Packet) + 1000,
+    rc = sendto(client->client_socketFd, output_buffer,
+        BUFFER_SIZE,
         0, (struct sockaddr *)&client->ip_adress, sizeof(struct sockaddr_in));
         check_error(rc, "sendto");
 
        //else if the last packet it sent
         // send empty packe
 
-    free(output_buffer_send);
     return rc;
 }
 
@@ -86,7 +84,7 @@ void rdp_send_file(struct Packet *input, struct rdp_connection *current_client)
     }
 
     printf(" bytes read  %d remaing bytes %d readingn from  %d\n", read, bytes_to_read, ack);
-    memcpy(output_buffer, file_buffer+read, 999);
+    memcpy(output_buffer, file_buffer+read, bytes_to_read);
     if(bytes_to_read > 0) {
         fprintf(stdout,"[INFO] output_buffer paylaod is not empty\n");
         //puts(output_buffer);
@@ -95,7 +93,7 @@ void rdp_send_file(struct Packet *input, struct rdp_connection *current_client)
     current_client->bytes_read = read + bytes_to_read;
     output_packet = construct_packet(DATA_PACK, input->ack_seq, 
                         current_client->packet_seq, 0, input->sender_id, 
-                        strlen(output_buffer), output_buffer);
+                        bytes_to_read, output_buffer);
 
 
     /*Sending what is in buffer*/

@@ -58,6 +58,7 @@ int main(int argc, char const *argv[])
     file_buffer = malloc(sizeof(char)*file_length);
     rc = fread(file_buffer, sizeof(char), file_length, output_file);
         check_error(rc, "fread");
+    output_buffer = malloc(sizeof(char)*BUFFER_SIZE);
 
     max_connections = atoi(argv[3]);
     number_of_connections = 0;
