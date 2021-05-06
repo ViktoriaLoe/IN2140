@@ -79,7 +79,7 @@ int main(int argc, char const *argv[])
 
         if (FD_ISSET(udpSocket_fd, &server_fd_set)) {
             // FD is used, recevie input buffer
-            printf("\nReceving input\n");
+            printf("\n-------------\nReceving input\n");
             rc = recvfrom(udpSocket_fd, input_buffer, sizeof(struct Packet)+ 1024, 0,
                     (struct sockaddr*)&server_fd, &sockaddr_size);
                     check_error(rc, "recvfrom");
@@ -93,6 +93,7 @@ int main(int argc, char const *argv[])
                 if (input->metadata == 0) {
                     printf("We got an Empty packet! DONE\n");
                     connection_attempt->flag = CONNECT_TERMINATE;
+                    ack_pack->packet_seq++;
                     rc = rdp_write_server(udpSocket_fd, connection_attempt);
                         check_error(rc, "sento");
                     break;

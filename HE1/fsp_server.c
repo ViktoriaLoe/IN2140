@@ -30,15 +30,6 @@ void free_infrastructure()
     free(active_connections);
 }
 
-int find_connection_index(int sender_id)
-{
-    for (int index = 0; index < number_of_connections; index++) {
-        if (active_connections[index]->connection_id == sender_id){
-            return index;
-        }
-    }
-    return -1;
-}
 
 
 int main(int argc, char const *argv[])
@@ -58,13 +49,15 @@ int main(int argc, char const *argv[])
     /*Assigning input variables, listening for all adresses*/
     socklen_t sock_addrsize = sizeof(struct sockaddr);
     port = htons(atoi(argv[1]));
-    output_buffer = malloc(sizeof(struct Packet) + BUFFER_SIZE);
 
 
     output_file = fopen(argv[2], "rb");
     fseek(output_file, 0L, SEEK_END);
     file_length = ftell(output_file);
     rewind(output_file);
+    file_buffer = malloc(sizeof(char)*file_length);
+    rc = fread(file_buffer, sizeof(char), file_length, output_file);
+        check_error(rc, "fread");
 
     max_connections = atoi(argv[3]);
     number_of_connections = 0;
@@ -108,13 +101,10 @@ int main(int argc, char const *argv[])
             rc = recvfrom(socket_fd, input, sizeof(struct Packet),
                     0, (struct sockaddr *)&addr_con, &sock_addrsize);
                     check_error(rc, "recvfrom");
-                    fprintf(stdout,"[INFO] Recevied data %d bytes from id:%d\n");
+                    fprintf(stdout,"[INFO] Recevied data bytes from \n");
                 // fprintf(stderr,"[INFO] Buffer contains flag: %d id %d\n", input->flag, input->sender_id);
 
-            // it was a connection request and it was accepted
             if (new_connection != NULL) {
-                printf("Attempting to send file\n");
-                rdp_send_file(input, new_connection);
                 continue;
             }
 

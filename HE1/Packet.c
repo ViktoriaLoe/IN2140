@@ -14,8 +14,9 @@ int sequence_number = 100;
 void print_packet(struct Packet *packet)
 {   
     fprintf(stdout,"[INFO] \n |    id:%d %d\n |    pkt_s: %d\n |    packet flag: %d\n |    payload size %d \n", packet->recv_id, packet->sender_id,packet->packet_seq, packet->flag, packet->metadata);
-    if (packet->flag  & DATA_PACK) {
-        fprintf(stdout,"[INFO] packet: %s\n", packet->payload);
+    if (packet->flag  & DATA_PACK && packet->metadata > 0) {
+        fprintf(stdout,"[INFO] packet->flag: %d\n", packet->flag);
+        puts(packet->payload);
     }
 }
 //serializing
@@ -31,26 +32,28 @@ void buffer_to_packet(char *final_buffer, struct Packet *p)
 }
 
 // Deseriaizing
-char * my_packet_to_buffer(struct Packet *p )
+char * my_packet_to_buffer(struct Packet *p)
 {
     //change into htons
     char *final_buffer;
 
-    if (p !=NULL && p->flag & DATA_PACK) {
-        if (p->payload == NULL) {
-            final_buffer = malloc(sizeof (struct Packet) + BUFFER_SIZE);
+    if (p == NULL) {
+        fprintf(stdout,"[INFO] Packet was NULL\n");
+        return NULL;
+    }
+    
+    if (p->flag & DATA_PACK) {
+        if (p->metadata == 0) { //just a packet
+            final_buffer = malloc(sizeof (struct Packet));
             memcpy(final_buffer, p, sizeof(struct Packet));
         }
-        else {
+        else { //data packet with payload
             final_buffer = malloc(p->metadata + sizeof(struct Packet) + BUFFER_SIZE);
             memcpy(final_buffer, p,                              sizeof(struct Packet));
             memcpy(final_buffer + sizeof(struct Packet), p->payload,  p->metadata);
         }
     }
-    else {
-        if (p == NULL) {
-            printf("P IS NUKLLL OG NOOOo\n");
-        }
+    else { //not a data packet, no payload
         final_buffer = malloc(sizeof(struct Packet));
         memcpy(final_buffer, p, sizeof(struct Packet));
     }
@@ -79,7 +82,7 @@ struct Packet* construct_packet(unsigned char flag, unsigned char pktseq, unsign
     {
         packet->payload = malloc(sizeof(char) * meta);
         packet->payload = payload;
-        fprintf(stdout,"[INFO] constructing packet! meta %d payload: %s\n",packet->metadata, packet->payload);
+        fprintf(stdout,"[INFO] constructing packet! meta %d \n",packet->metadata);
     }
 
     return packet;
