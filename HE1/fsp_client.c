@@ -65,7 +65,6 @@ int main(int argc, char const *argv[])
     // input packet and ack_packet
     struct Packet *input = malloc(sizeof(struct Packet ) + 2000);
     struct Packet *ack_pack             = malloc(sizeof(struct Packet)+BUFFER_SIZE);
-
     ack_pack            = construct_packet(ACK_PACK, 0, 0, id, 200, 0, 0);
 
 
@@ -84,59 +83,38 @@ int main(int argc, char const *argv[])
             rc = recvfrom(udpSocket_fd, input_buffer, sizeof(struct Packet)+ 1024, 0,
                     (struct sockaddr*)&server_fd, &sockaddr_size);
                     check_error(rc, "recvfrom");
-            
-            buffer_to_packet(input_buffer, input);
 
-            //Received accept
-            if (input->flag & CONNECTION_ACC) { 
-                fprintf(stdout, "[SUCCESS] CONNECTED TO SERVER ID: %d meta %d\n", id, input->metadata);
+            input = rdp_read(input_buffer, ack_pack, udpSocket_fd); 
+
+            // If we got the expected datapacket
+            if (input != NULL) {
+            
+                // Data pack is empty
+                if (input->metadata == 0) {
+                    printf("We got an Empty packet! DONE\n");
+                    connection_attempt->flag = CONNECT_TERMINATE;
+                    rc = rdp_write_server(udpSocket_fd, connection_attempt);
+                        check_error(rc, "sento");
+                    break;
+                }
+                // We received data
+                ack_pack->packet_seq++;
+                fputs(input->payload, filep); //writes buffer into filep
+
+                rc = rdp_write_server(udpSocket_fd, ack_pack);
+                check_error(rc, "sendto");
+                ack_pack->ack_seq++;
                 continue;
             }
-
-            // Received conenciton terminate
-            if(input->flag & CONNECTION_DEN) {
-                fprintf(stderr,"[ERROR] NOT CONNECTED TO SERVER\n");
-                return EXIT_FAILURE;
-            }
-
-            // check if data pack was the one we expected
-            if (input->flag & DATA_PACK) 
-            {
-                //Correct data packet was recevied
-                if (input->packet_seq == ack_pack->packet_seq) {
-                    // Data pack is empty
-                    if (input->metadata == 0) {
-                        //send connection terminate
-                        printf("We got an Empty packet! DONE\n");
-                        break;
-                    }
-                    ack_pack->packet_seq++;
-                    fputs(input->payload, filep); //writes buffer into filep
-
-                    rc = rdp_write_server(udpSocket_fd, ack_pack);
-                    check_error(rc, "sendto");
-                    ack_pack->ack_seq++;
-                    continue;
-                }
-
-                // Old data packet! sending ack again
-                if (input->packet_seq < ack_pack->packet_seq) {
-                    rc = rdp_write_server(udpSocket_fd, ack_pack);
-                        check_error(rc, "sendto");
-                    continue;
-                }
-            }
-
             else {
-                printf("This pack is not somethine we saw coming, dont know what to do\n");
-                // wasnt the right data pack!?
-                // send ack agaig
+                // Everything is handled
             }
 
         }
         else { // we waited too long and recevied nothing. Send packet again
             fprintf(stdout,"[INFO] We waited too long\n");
-            //rc = sendto(udpSocket_fd, my_packet_to_buffer(ack_pack, buffer))
+            rc = rdp_write_server(udpSocket_fd, ack_pack);
+                check_error(rc, "sendto");
         }
         
     } while (1);
@@ -147,5 +125,6 @@ int main(int argc, char const *argv[])
     free(input);
     free(ack_pack);
     close(udpSocket_fd);
+    fclose(filep);
     return EXIT_SUCCESS;
 }

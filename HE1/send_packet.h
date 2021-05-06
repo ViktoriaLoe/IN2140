@@ -54,6 +54,7 @@ struct rdp_connection { //add to header potentially
     int connection_id, packet_seq;              // used to identify client
     int client_socketFd;
     struct Packet *previous_packet_sent; // last packet sent to client, used when no ack is receieved in time 
+    struct Packet *previous_packet_recevied; //last packet sent ffrom client
 };
 
 void check_error(int ret, char *msg);
@@ -66,9 +67,11 @@ int max_connections;
 int file_length;
 char *output_buffer; 
 char *output_buffer_c;
+FILE *output_file;
+
 
 // accepts incoming network requests 
-struct rdp_connection*  rdp_accept(struct Packet *packet, struct sockaddr_in addr_cli, int fd);
+struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli);
 
 // converts packet into buffer and sends it to server 
 int                     rdp_write_server(int socket_fd, struct Packet *output);
@@ -76,11 +79,13 @@ int                     rdp_write_server(int socket_fd, struct Packet *output);
 // converts packet into buffer and sends it to client
 int rdp_write(struct rdp_connection *client_fd, struct Packet *output);
 
+void rdp_read_from_client(char *input_buffer);
 //
-void                    rdp_read();
+struct Packet* rdp_read(char *input_buffer, struct Packet *ack_pack, int udpSocket_fd);
 
 //
 void                    rdp_close(struct Packet *packet);
+
 
 
 // Extra functions
