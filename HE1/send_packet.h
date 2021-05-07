@@ -86,7 +86,7 @@ int rdp_read_from_client(char *input_buffer);
 struct Packet* rdp_read(char *input_buffer, struct Packet *ack_pack, int udpSocket_fd);
 
 //
-void                    rdp_close(struct Packet *packet);
+void                    rdp_close();
 
 
 

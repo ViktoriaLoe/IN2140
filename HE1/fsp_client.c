@@ -50,7 +50,7 @@ int main(int argc, char const *argv[])
 
     /*Making packets to send*/
     struct Packet *connection_attempt   = malloc(sizeof(struct Packet));
-    connection_attempt  = construct_packet(CONNECT_REQ, 0, 0, id, 0, 0, 0);
+    connection_attempt  = construct_packet(CONNECT_REQ, 0, 0, id, 0, 0, 0); //freed at end
 
     /* Sending packet using rdp_write*/
     rc = rdp_write_server(udpSocket_fd, connection_attempt);
@@ -74,8 +74,8 @@ int main(int argc, char const *argv[])
         FD_ZERO(&server_fd_set);
         FD_SET(udpSocket_fd, &server_fd_set);
 
-        struct timeval tv = {10000, 0};
-        select(FD_SETSIZE + 1, &server_fd_set, NULL, NULL, &tv);
+        struct timeval tv = {100, 0};
+        select(FD_SETSIZE , &server_fd_set, NULL, NULL, &tv);
 
         if (FD_ISSET(udpSocket_fd, &server_fd_set)) {
             // FD is used, recevie input buffer
@@ -90,20 +90,21 @@ int main(int argc, char const *argv[])
             if (input != NULL) {
             
                 // Data pack is empty
-                if (input->metadata <= 1) {
+                if (input->metadata == 0) {
                     printf("We got an Empty packet! DONE\n");
                     connection_attempt->flag = CONNECT_TERMINATE;
-                    ack_pack->packet_seq++;
+                    ack_pack->packet_seq++; //increase since packet was received
                     rc = rdp_write_server(udpSocket_fd, connection_attempt);
                         check_error(rc, "sento");
                     break;
                 }
                 // We received data
                 ack_pack->packet_seq++;
-                //rc = fwrite(input->payload, sizeof(char), input->metadata,filep);
-                //check_error(rc, "fwrite");
-                memcpy(filep, input->payload+8, input->metadata);
-                printf("we wrote to file %d bytes\n", rc);
+                // rc = fwrite(input->payload, sizeof(char), input->metadata,filep);
+                // check_error(rc, "fwrite");
+
+                //memcpy(filep, input->payload, input->metadata);
+                printf("we wrote to file %d bytes\n %s\n", rc, input->payload);
                 // fputs(input->payload, filep); //writes buffer into filep
 
                 rc = rdp_write_server(udpSocket_fd, ack_pack);
@@ -117,7 +118,7 @@ int main(int argc, char const *argv[])
 
         }
         else { // we waited too long and recevied nothing. Send packet again
-            // fprintf(stdout,"[INFO] We waited too long\n");
+            fprintf(stdout,"[INFO] We waited too long\n");
             //rc = rdp_write_server(udpSocket_fd, ack_pack);
               //  check_error(rc, "sendto");
         }
@@ -133,6 +134,6 @@ int main(int argc, char const *argv[])
     free(ack_pack->payload);
     free(ack_pack);
     close(udpSocket_fd);
-    fclose(filep);
+    //fclose(filep);
     return EXIT_SUCCESS;
 }

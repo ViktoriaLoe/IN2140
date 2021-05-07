@@ -22,15 +22,6 @@ void check_error(int ret, char *msg) {
     }
 }
 
-void free_infrastructure()
-{
-    for (int i = 0; i < number_of_connections; i++){
-        free(active_connections[i]->previous_packet_recevied);
-        free(active_connections[i]);
-    }
-    free(active_connections);
-}
-
 
 
 int main(int argc, char const *argv[])
@@ -56,11 +47,10 @@ int main(int argc, char const *argv[])
     fseek(output_file, 0L, SEEK_END);
     file_length = ftell(output_file);
     rewind(output_file);
-    file_buffer = malloc(sizeof(char)*file_length);
+    file_buffer = calloc(file_length, sizeof(char));
     rc = fread(file_buffer, sizeof(char), file_length, output_file);
         check_error(rc, "fread");
-    output_buffer = malloc(sizeof(char)*BUFFER_SIZE);
-    memset(output_buffer, 0 , sizeof(char)*BUFFER_SIZE);
+    output_buffer = calloc(BUFFER_SIZE, sizeof(char));
 
     max_connections = atoi(argv[3]);
     number_of_connections = 0;
@@ -89,11 +79,11 @@ int main(int argc, char const *argv[])
     {
         FD_ZERO(&readFD); //clear the read fd
         FD_SET(socket_fd, &readFD);
-        // fprintf(stdout,"\n\n[INFO] Using select and waiting\n");
+        fprintf(stdout,"\n\n[INFO] Using select and waiting\n");
 
         //listening to FD for incoming packet
-        struct timeval tv = {1000, 0};
-        select(FD_SETSIZE + 1, &readFD, NULL, NULL, &tv); 
+        struct timeval tv = {100, 0};
+        select(FD_SETSIZE , &readFD, NULL, NULL, &tv); 
 
         /*Getting input and reformatting it*/
         if (FD_ISSET(socket_fd, &readFD)) {
@@ -116,7 +106,7 @@ int main(int argc, char const *argv[])
 
         }
         else { //timed out sending again
-            // fprintf(stdout,"[INFO] Waited too long!\n");
+            fprintf(stdout,"[INFO] Waited too long!\n");
             // if (number_of_connections == 0) {
             //     fprintf(stdout,"[INFO] Nothing to do, number_of_connections: %d\n", number_of_connections);
             //     continue;
@@ -127,9 +117,8 @@ int main(int argc, char const *argv[])
             // }
         }
     } while (done < 2);
-
+    rdp_close();
     close(socket_fd);
-    free_infrastructure();
     free(new_connection);
     return EXIT_SUCCESS;
 

@@ -28,15 +28,13 @@ void buffer_to_packet(char *final_buffer, struct Packet *p)
         memcpy(buf, final_buffer + sizeof(struct Packet),  p->metadata);
         p->payload = buf;
     }
-    //print_packet(p);
 }
 
 // Deseriaizing
 char * my_packet_to_buffer(struct Packet *p)
 {
     //change into htons
-    char *final_buffer = malloc(sizeof(char)*1024);
-    memset(final_buffer, 0 , sizeof(char)*BUFFER_SIZE);
+    char *final_buffer = calloc(1024, sizeof(char));
 
 
     if (p == NULL) {
@@ -44,23 +42,19 @@ char * my_packet_to_buffer(struct Packet *p)
         return NULL;
     }
     
-    if (p->flag & DATA_PACK) {
-        if (p->metadata == 0) { //just a packet
-            // final_buffer = malloc(sizeof (struct Packet));
-            memcpy(final_buffer, p, sizeof(struct Packet));
-        }
-        else { //data packet with payload
-            // final_buffer = malloc(p->metadata + sizeof(struct Packet) + 1000);
+    if (p->flag & DATA_PACK && p->metadata != 0) {
+         //data packet with payload
             memcpy(final_buffer, p,                              sizeof(struct Packet));
             memcpy(final_buffer + sizeof(struct Packet) -8 , p->payload,  p->metadata);
+            
         }
-    }
-    else { //not a data packet, no payload
-        // final_buffer = malloc(sizeof(struct Packet));
+    
+    else { //no payload
         memcpy(final_buffer, p, sizeof(struct Packet));
     }
+
     fprintf(stdout,"\n[INFO] Sending packet! sending:\n");
-    //print_packet(p);
+    print_packet(p);
     return final_buffer;
 }
 
