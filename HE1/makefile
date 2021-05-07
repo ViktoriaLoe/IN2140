@@ -31,7 +31,7 @@ run: $(BIN)
 	./$(BIN)
 
 check: $(BIN)
-	valgrind $(VFLAGS) ./$(BIN)
+	valgrind $(VFLAGS) 
 
 clean:
 	rm -f *.o ./$(BIN)

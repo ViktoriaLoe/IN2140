@@ -22,9 +22,6 @@ int find_connection_index(int sender_id)
 
 void rdp_close(struct Packet *packet)
 {
-    int index = find_connection_index(packet->sender_id);
-    free(active_connections[index]);
-    free(packet->payload);
 
 }
 
@@ -40,6 +37,7 @@ int rdp_write_server(int socket_fd, struct Packet *output)
                 0,                                           /*flags*/
                 (struct sockaddr *)&server_fd_global,       /*IP and port*/
                 sizeof(struct sockaddr_in));                /*size of addres-struct */
+    //free(output);
     return rc;
 }
 
@@ -49,6 +47,7 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
     int rc = 0;
 
     printf("WRITING\n");
+    print_packet(output);
     output_buffer = my_packet_to_buffer(output);
 
     /*Sending packet with file in it*/
@@ -59,7 +58,7 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
 
        //else if the last packet it sent
         // send empty packe
-
+    free(output);
     return rc;
 }
 
@@ -91,16 +90,17 @@ void rdp_send_file(struct Packet *input, struct rdp_connection *current_client)
     }
     printf("read %d bytes\n", bytes_to_read);
     current_client->bytes_read = read + bytes_to_read;
-    output_packet = construct_packet(DATA_PACK, input->ack_seq, 
-                        current_client->packet_seq, 0, input->sender_id, 
+    output_packet = construct_packet(DATA_PACK, input->packet_seq, 
+                        input->ack_seq, 0, input->sender_id, 
                         bytes_to_read, output_buffer);
 
 
     /*Sending what is in buffer*/
+    //free(current_client->previous_packet_sent);
     current_client->previous_packet_sent = output_packet;
     rdp_write(current_client, output_packet);
     printf("Sent packet\n");
-    free(output_packet);
+    //free(output_packet);
     free(output_buffer);
 }
 
@@ -108,6 +108,7 @@ int rdp_read_from_client(char *input_buffer)
 {   
     struct Packet *input = malloc(sizeof(struct Packet ) + 2000);
     buffer_to_packet(input_buffer, input);
+    print_packet(input);
 
     //2. Try to deliver the 'next' packages to all connected rdp-clients
         // We recevied an ACK and can start/proceed in sending file to client
@@ -118,13 +119,13 @@ int rdp_read_from_client(char *input_buffer)
         struct rdp_connection *current_client;
         int index = find_connection_index(input->sender_id);
         current_client = active_connections[index];
-        
+        current_client->packet_seq++; 
         rdp_send_file(input, current_client);
     }
 
     //3. Check if an rdp-connection is closed
     else if(input->flag & CONNECT_TERMINATE) {
-        // free rdp_connection
+        
         fprintf(stdout, "[INFO] DISCONNECTED \n");
         rdp_close(input); // closes connection removes from array and frees space
         free(input);
@@ -141,9 +142,10 @@ int rdp_read_from_client(char *input_buffer)
 struct Packet* rdp_read(char *input_buffer, struct Packet *ack_pack, int udpSocket_fd)
 {   
     int rc = 0;
-    struct Packet *input = malloc(sizeof(struct Packet ) + 2000);
+    struct Packet *input = malloc(sizeof(char)*BUFFER_SIZE);
     printf("INSIDE RDP_READ\n");
     buffer_to_packet(input_buffer, input);
+    print_packet(input);
 
     if (input->flag & CONNECTION_ACC) {
         fprintf(stdout, "[SUCCESS] CONNECTED TO SERVER ID: %d meta %d\n", input->recv_id , input->metadata);
@@ -159,19 +161,19 @@ struct Packet* rdp_read(char *input_buffer, struct Packet *ack_pack, int udpSock
 
     if (input->flag & DATA_PACK) {
         // Correct data packet received
-        if (input->packet_seq == ack_pack->packet_seq) {
+        // if (input->packet_seq == ack_pack->packet_seq) {
             fprintf(stdout, "[INFO] Received data pcket: meta %d\n",  input->metadata);
             return input;
-        }
-        else { // Old packet, sending ack again
-            rc = rdp_write_server(udpSocket_fd, ack_pack);
-                check_error(rc, "sendto");
-            free(input);
-            return NULL;
-        }
+        // }
+        // else { // Old packet, sending ack again
+        //     rc = rdp_write_server(udpSocket_fd, ack_pack);
+        //         check_error(rc, "sendto");
+        //     free(input);
+        //     return NULL;
+        // }
 
     } 
-    free(input);
+    // free(input);
     return NULL;
 }
 
@@ -214,7 +216,7 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
     }
 
     // It is a CONNECTION_REQ 
-    struct Packet *output_pack             = malloc(sizeof(struct Packet)+BUFFER_SIZE);
+    struct Packet *output_pack = malloc(sizeof(struct Packet));
     output_pack            = construct_packet(CONNECTION_DEN, 0, 0, 0, client_con_packet->sender_id, 0, 0);
 
     /* Checking if ID is valid and if server takes more clients*/
@@ -224,6 +226,7 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
         // Data structure for this client isnt created, so to avoid sending a lot of input to rdp_write I'm sending it from this function
         rc = sendto(socket_fd, output_pack, sizeof(struct Packet), 0, (struct sockaddr *)&addr_cli, sockaddr_size);
             check_error(rc, "sendto");
+            free(output_pack);
             free(client_con_packet);
             return NULL;
     }
@@ -249,6 +252,7 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
         number_of_connections++;
 
     rdp_send_file(client_con_packet, client);
+    free(output_pack);
     free(client_con_packet);
     return client;
 }

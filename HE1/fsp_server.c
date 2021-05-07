@@ -25,6 +25,7 @@ void check_error(int ret, char *msg) {
 void free_infrastructure()
 {
     for (int i = 0; i < number_of_connections; i++){
+        free(active_connections[i]->previous_packet_recevied);
         free(active_connections[i]);
     }
     free(active_connections);
@@ -59,6 +60,7 @@ int main(int argc, char const *argv[])
     rc = fread(file_buffer, sizeof(char), file_length, output_file);
         check_error(rc, "fread");
     output_buffer = malloc(sizeof(char)*BUFFER_SIZE);
+    memset(output_buffer, 0 , sizeof(char)*BUFFER_SIZE);
 
     max_connections = atoi(argv[3]);
     number_of_connections = 0;
@@ -70,7 +72,7 @@ int main(int argc, char const *argv[])
     addr_con.sin_port = port;
     addr_con.sin_addr.s_addr = INADDR_ANY;
 
-    //Socket
+//Socket
     socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
     check_error(socket_fd, "socket");        
 
@@ -87,10 +89,10 @@ int main(int argc, char const *argv[])
     {
         FD_ZERO(&readFD); //clear the read fd
         FD_SET(socket_fd, &readFD);
-        fprintf(stdout,"\n\n[INFO] Using select and waiting\n");
+        // fprintf(stdout,"\n\n[INFO] Using select and waiting\n");
 
         //listening to FD for incoming packet
-        struct timeval tv = {100, 0};
+        struct timeval tv = {1000, 0};
         select(FD_SETSIZE + 1, &readFD, NULL, NULL, &tv); 
 
         /*Getting input and reformatting it*/
@@ -110,21 +112,21 @@ int main(int argc, char const *argv[])
             }
 
             // reading input to see if it was an ACK or CONNECTION termination
-            done = rdp_read_from_client(input);
+            done += rdp_read_from_client(input);
 
         }
         else { //timed out sending again
-            fprintf(stdout,"[INFO] Waited too long!\n");
-            if (number_of_connections == 0) {
-                fprintf(stdout,"[INFO] Nothing to do, number_of_connections: %d\n", number_of_connections);
-                continue;
-            }
-            if (new_connection->previous_packet_sent != NULL) {
-                fprintf(stdout,"[INFO] Sending previous packet again\n");
-                rdp_write(new_connection, new_connection->previous_packet_sent);
-            }
+            // fprintf(stdout,"[INFO] Waited too long!\n");
+            // if (number_of_connections == 0) {
+            //     fprintf(stdout,"[INFO] Nothing to do, number_of_connections: %d\n", number_of_connections);
+            //     continue;
+            // }
+            // if (new_connection->previous_packet_sent != NULL) {
+            //     fprintf(stdout,"[INFO] Sending previous packet again\n");
+            //     //rdp_write(new_connection, new_connection->previous_packet_sent);
+            // }
         }
-    } while (done < 1);
+    } while (done < 2);
 
     close(socket_fd);
     free_infrastructure();

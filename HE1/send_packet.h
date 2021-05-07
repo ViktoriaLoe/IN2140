@@ -30,10 +30,8 @@ struct Packet
 {
     unsigned char flag, packet_seq, ack_seq, unused;
     int sender_id, recv_id, metadata;
-    // if flag == 0c04 then metadata is length of packet + payload in bytes
-    // if it's +x20 then metadata gives an itnerger value that indicates the reason for refusing the request
     char *payload; // metadata is size, only for flag == 0x04
-};
+}__attribute__((packed));
 
 
 void print_packet(struct Packet *packet);

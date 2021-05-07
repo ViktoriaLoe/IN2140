@@ -63,8 +63,8 @@ int main(int argc, char const *argv[])
     //check_error(filep, "fopen");
 
     // input packet and ack_packet
-    struct Packet *input = malloc(sizeof(struct Packet ) + 2000);
-    struct Packet *ack_pack             = malloc(sizeof(struct Packet)+BUFFER_SIZE);
+    struct Packet *input = malloc(sizeof(struct Packet ) + 1000);
+    struct Packet *ack_pack             = malloc(sizeof(struct Packet)+1000);
     ack_pack            = construct_packet(ACK_PACK, 0, 0, id, 200, 0, 0);
 
 
@@ -74,7 +74,7 @@ int main(int argc, char const *argv[])
         FD_ZERO(&server_fd_set);
         FD_SET(udpSocket_fd, &server_fd_set);
 
-        struct timeval tv = {100, 0};
+        struct timeval tv = {10000, 0};
         select(FD_SETSIZE + 1, &server_fd_set, NULL, NULL, &tv);
 
         if (FD_ISSET(udpSocket_fd, &server_fd_set)) {
@@ -100,7 +100,11 @@ int main(int argc, char const *argv[])
                 }
                 // We received data
                 ack_pack->packet_seq++;
-                fputs(input->payload, filep); //writes buffer into filep
+                //rc = fwrite(input->payload, sizeof(char), input->metadata,filep);
+                //check_error(rc, "fwrite");
+                memcpy(filep, input->payload+8, input->metadata);
+                printf("we wrote to file %d bytes\n", rc);
+                // fputs(input->payload, filep); //writes buffer into filep
 
                 rc = rdp_write_server(udpSocket_fd, ack_pack);
                 check_error(rc, "sendto");
@@ -113,17 +117,20 @@ int main(int argc, char const *argv[])
 
         }
         else { // we waited too long and recevied nothing. Send packet again
-            fprintf(stdout,"[INFO] We waited too long\n");
-            rc = rdp_write_server(udpSocket_fd, ack_pack);
-                check_error(rc, "sendto");
+            // fprintf(stdout,"[INFO] We waited too long\n");
+            //rc = rdp_write_server(udpSocket_fd, ack_pack);
+              //  check_error(rc, "sendto");
         }
         
     } while (1);
     
 
     printf("End of main\n");
+    free(connection_attempt->payload);
     free(connection_attempt);
+    //free(input->payload);
     free(input);
+    free(ack_pack->payload);
     free(ack_pack);
     close(udpSocket_fd);
     fclose(filep);
