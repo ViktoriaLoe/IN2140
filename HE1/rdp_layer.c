@@ -22,7 +22,7 @@ int find_connection_index(int sender_id)
 void free_packet(struct Packet *pack)
 {
     if (pack->payload != 0) {
-        free(pack->payload);
+        //free(pack->payload);
     }
     free(pack);
 }
@@ -61,8 +61,11 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
 
     printf("WRITING\n");
     print_packet(output);
-    output_buffer = my_packet_to_buffer(output);
 
+    struct Packet *input = malloc(sizeof(struct Packet)+1000);
+    output_buffer = my_packet_to_buffer(output);
+    buffer_to_packet(output_buffer, input);
+    fprintf(stdout,"[INFO] %s \n",input->payload);
 
     /*Sending packet with file in it*/
     rc = sendto(client->client_socketFd, output_buffer,
@@ -73,7 +76,7 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
        //else if the last packet it sent
         // send empty packe
     //free(output->payload);
-    free_packet(output);
+    free(output);
     free(output_buffer);
     return rc;
 }
@@ -122,7 +125,8 @@ void rdp_send_file(struct Packet *input, struct rdp_connection *current_client)
     current_client->previous_packet_sent = output_packet;
     rdp_write(current_client, output_packet);
     printf("Sent packet\n");
-    free_packet(output_packet);
+    free(output_packet);
+    free_packet(input);
     //free(input->payload);
     //free(input);
     //free(output_buffer);
@@ -152,6 +156,7 @@ int rdp_read_from_client(char *input_buffer)
         
         fprintf(stdout, "[INFO] DISCONNECTED \n");
         free_packet(input);
+        rewind(output_file);
         return 1;
     }
     else {

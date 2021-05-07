@@ -22,7 +22,7 @@ void print_packet(struct Packet *packet)
 //serializing
 void buffer_to_packet(char *final_buffer, struct Packet *p)
 {
-    char buf[1000];
+    char *buf = calloc(1016, sizeof(char));
     memcpy(p, final_buffer,sizeof(struct Packet));
     if (p->flag & DATA_PACK) {
         memcpy(buf, final_buffer + sizeof(struct Packet),  p->metadata);
@@ -81,7 +81,7 @@ struct Packet* construct_packet(unsigned char flag, unsigned char pktseq, unsign
     {
         packet->payload = payload;
 
-        fprintf(stdout,"[INFO] constructing packet! meta %d %s\n",packet->metadata, packet->payload);
+        fprintf(stdout,"[INFO] constructing packet! meta %d %\n",packet->metadata);
     }
     
     return packet;

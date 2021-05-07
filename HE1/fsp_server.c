@@ -77,7 +77,7 @@ int main(int argc, char const *argv[])
     char input[1016];
     struct rdp_connection *new_connection;
     int done = 0;
-
+    sleep(5);
     do
     {
         FD_ZERO(&readFD); //clear the read fd
@@ -108,25 +108,25 @@ int main(int argc, char const *argv[])
 
             // reading input to see if it was an ACK or CONNECTION termination
             done += rdp_read_from_client(input);
-            if (done > 0 && done == number_of_connections) {
+            if (done == max_connections) {
                 break;
             }
 
         }
         else { //timed out sending again
             fprintf(stdout,"[INFO] Waited too long!\n");
-            // if (number_of_connections == 0) {
-            //     fprintf(stdout,"[INFO] Nothing to do, number_of_connections: %d\n", number_of_connections);
-            //     continue;
-            // }
-            // if (new_connection->previous_packet_sent != NULL) {
-            //     fprintf(stdout,"[INFO] Sending previous packet again\n");
-            //     //rdp_write(new_connection, new_connection->previous_packet_sent);
-            // }
+            if (number_of_connections == 0) {
+                fprintf(stdout,"[INFO] Nothing to do, number_of_connections: %d\n", number_of_connections);
+                continue;
+            }
+            if (new_connection->previous_packet_sent != NULL) {
+                fprintf(stdout,"[INFO] Sending previous packet again\n");
+                rdp_write(new_connection, new_connection->previous_packet_sent);
+            }
         }
     } while (1);
     printf("end of main \n");
-    rdp_close();
+    //rdp_close();
     close(socket_fd);
     free(new_connection);
     free(file_buffer);
