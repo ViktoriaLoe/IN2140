@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include "send_packet.h"
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 1016
 
 
 int find_connection_index(int sender_id)
@@ -18,6 +18,13 @@ int find_connection_index(int sender_id)
         }
     }
     return -1;
+}
+void free_packet(struct Packet *pack)
+{
+    if (pack->payload != 0) {
+        free(pack->payload);
+    }
+    free(pack);
 }
 
 void rdp_close()
@@ -33,6 +40,7 @@ void rdp_close()
 int rdp_write_server(int socket_fd, struct Packet *output)
 {
     int rc = 0;
+    char *output_buffer_c;
     printf("WRITING\n");
     output_buffer_c = my_packet_to_buffer(output);
     rc = sendto(socket_fd,                                  /*socket*/
@@ -41,7 +49,8 @@ int rdp_write_server(int socket_fd, struct Packet *output)
                 0,                                           /*flags*/
                 (struct sockaddr *)&server_fd_global,       /*IP and port*/
                 sizeof(struct sockaddr_in));                /*size of addres-struct */
-    // free(output);
+    
+    free(output_buffer_c);
     return rc;
 }
 
@@ -54,6 +63,7 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
     print_packet(output);
     output_buffer = my_packet_to_buffer(output);
 
+
     /*Sending packet with file in it*/
     rc = sendto(client->client_socketFd, output_buffer,
         BUFFER_SIZE,
@@ -62,15 +72,17 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
 
        //else if the last packet it sent
         // send empty packe
-    free(output->payload);
-    free(output);
+    //free(output->payload);
+    free_packet(output);
+    free(output_buffer);
     return rc;
 }
 
 void rdp_send_file(struct Packet *input, struct rdp_connection *current_client)
 {
+    int rc = 0;
     char *output_buffer = calloc(1000, sizeof(char)); // this is free at end of 
-    struct Packet *output_packet = malloc(sizeof(struct Packet *)); //this is freeed in rdp_write
+    struct Packet *output_packet; //this is freeed in rdp_write
 
     /*Checking if it is not the correct ACK sequence*/
     if (current_client->previous_packet_sent != NULL &&
@@ -88,26 +100,32 @@ void rdp_send_file(struct Packet *input, struct rdp_connection *current_client)
     }
 
     printf(" file length %d bytes read  %d remaing bytes %d readingn from  %d\n",file_length, read, bytes_to_read, ack);
-    memcpy(output_buffer, file_buffer+read, bytes_to_read);
+    //memcpy(output_buffer, file_buffer, bytes_to_read);
+
+    rc = fread(output_buffer, sizeof(char), bytes_to_read, output_file);
+        check_error(rc, "fread");
+
     if(bytes_to_read > 0) {
-        fprintf(stdout,"[INFO] output_buffer paylaod is not empty\n");
-        //puts(output_buffer);
+        fprintf(stdout,"[INFO] output_buffer paylaod is not empty \n");
+        //uts(output_buffer);
     }
-    printf("read %d bytes\n", bytes_to_read);
+
+    output_buffer[rc] = '\0';
     current_client->bytes_read = read + bytes_to_read;
+
     output_packet = construct_packet(DATA_PACK, input->packet_seq, //freed in rdp_write
                         input->ack_seq, 0, input->sender_id, 
                         bytes_to_read, output_buffer);
-
 
     /*Sending what is in buffer*/
     //free(current_client->previous_packet_sent->payload);
     current_client->previous_packet_sent = output_packet;
     rdp_write(current_client, output_packet);
     printf("Sent packet\n");
-    free(input->payload);
-    free(input);
-    free(output_buffer);
+    free_packet(output_packet);
+    //free(input->payload);
+    //free(input);
+    //free(output_buffer);
 }
 
 int rdp_read_from_client(char *input_buffer)
@@ -133,8 +151,7 @@ int rdp_read_from_client(char *input_buffer)
     else if(input->flag & CONNECT_TERMINATE) {
         
         fprintf(stdout, "[INFO] DISCONNECTED \n");
-        free(input->payload);
-        free(input);
+        free_packet(input);
         return 1;
     }
     else {
@@ -149,7 +166,7 @@ int rdp_read_from_client(char *input_buffer)
 struct Packet* rdp_read(char *input_buffer, struct Packet *ack_pack, int udpSocket_fd)
 {   
     int rc = 0;
-    struct Packet *input = malloc(sizeof(char)*BUFFER_SIZE);
+    struct Packet *input = malloc(sizeof(struct Packet)+1000);
     printf("INSIDE RDP_READ\n");
     buffer_to_packet(input_buffer, input);
     print_packet(input);
@@ -212,7 +229,7 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
             MSG_PEEK, (struct sockaddr *)&addr_cli, &sockaddr_size);
 
     //Creating packets reading buffer and deserializing
-    struct Packet* client_con_packet =  malloc(sizeof(struct Packet)+BUFFER_SIZE);
+    struct Packet *client_con_packet;
     client_con_packet = construct_packet(ACK_PACK, 0, 0, 0, client_con_packet->sender_id, 0, 0);
     buffer_to_packet(input, client_con_packet);
 
@@ -225,7 +242,7 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
     }
 
     // It is a CONNECTION_REQ 
-    struct Packet *output_pack = malloc(sizeof(struct Packet));
+    struct Packet *output_pack;
     output_pack            = construct_packet(CONNECTION_DEN, 0, 0, 0, client_con_packet->sender_id, 0, 0);
 
     /* Checking if ID is valid and if server takes more clients*/
@@ -235,10 +252,8 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
         // Data structure for this client isnt created, so to avoid sending a lot of input to rdp_write I'm sending it from this function
         rc = sendto(socket_fd, output_pack, sizeof(struct Packet), 0, (struct sockaddr *)&addr_cli, sockaddr_size);
             check_error(rc, "sendto");
-            free(output_pack->payload);
-            free(output_pack);
-            free(client_con_packet->payload);
-            free(client_con_packet);
+            free_packet(output_pack);
+            free_packet(client_con_packet);
             return NULL;
     }
 
@@ -264,7 +279,7 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
 
     rdp_send_file(client_con_packet, client);
     //free(output_pack);
-    free(client_con_packet->payload);
+    //free(client_con_packet->payload);
     free(client_con_packet);
     return client;
 }

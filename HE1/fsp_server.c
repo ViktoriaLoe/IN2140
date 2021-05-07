@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include "send_packet.h"
 
-#define BUFLEN 1024 
+#define BUFLEN 1016
 
 //An overview over all active connection to different clients, needs to be dynamically allocated
 int socket_fd;
@@ -50,8 +50,11 @@ int main(int argc, char const *argv[])
     file_buffer = calloc(file_length, sizeof(char));
     rc = fread(file_buffer, sizeof(char), file_length, output_file);
         check_error(rc, "fread");
+    rewind(output_file);
     output_buffer = calloc(BUFFER_SIZE, sizeof(char));
+    
 
+    fprintf(stdout,"[INFO] output_buffer: %s\n", output_buffer);
     max_connections = atoi(argv[3]);
     number_of_connections = 0;
     active_connections = malloc(sizeof(struct rdp_connection)*max_connections);
@@ -71,8 +74,8 @@ int main(int argc, char const *argv[])
     check_error(rc, "bind");
 
     /* MAIN LOOP*/
-    char input[1024];
-    struct rdp_connection *new_connection = malloc(sizeof(struct rdp_connection *));
+    char input[1016];
+    struct rdp_connection *new_connection;
     int done = 0;
 
     do
@@ -89,6 +92,7 @@ int main(int argc, char const *argv[])
         if (FD_ISSET(socket_fd, &readFD)) {
 
             fprintf(stdout,"[INFO] Checking if there are new connections to accept\n");
+            
             new_connection = rdp_accept(socket_fd, addr_con);
 
             rc = recvfrom(socket_fd, input, sizeof(struct Packet),
@@ -98,11 +102,15 @@ int main(int argc, char const *argv[])
                 // fprintf(stderr,"[INFO] Buffer contains flag: %d id %d\n", input->flag, input->sender_id);
 
             if (new_connection != NULL) {
+                free(new_connection);
                 continue;
             }
 
             // reading input to see if it was an ACK or CONNECTION termination
             done += rdp_read_from_client(input);
+            if (done > 0 && done == number_of_connections) {
+                break;
+            }
 
         }
         else { //timed out sending again
@@ -116,10 +124,13 @@ int main(int argc, char const *argv[])
             //     //rdp_write(new_connection, new_connection->previous_packet_sent);
             // }
         }
-    } while (done < 2);
+    } while (1);
+    printf("end of main \n");
     rdp_close();
     close(socket_fd);
     free(new_connection);
+    free(file_buffer);
+    free(output_buffer);
     return EXIT_SUCCESS;
 
 

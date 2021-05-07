@@ -27,6 +27,7 @@ void buffer_to_packet(char *final_buffer, struct Packet *p)
     if (p->flag & DATA_PACK) {
         memcpy(buf, final_buffer + sizeof(struct Packet),  p->metadata);
         p->payload = buf;
+        p->payload[p->metadata] = '\0';
     }
 }
 
@@ -34,7 +35,8 @@ void buffer_to_packet(char *final_buffer, struct Packet *p)
 char * my_packet_to_buffer(struct Packet *p)
 {
     //change into htons
-    char *final_buffer = calloc(1024, sizeof(char));
+    
+    char *final_buffer = calloc(1016, sizeof(char));
 
 
     if (p == NULL) {
@@ -44,8 +46,8 @@ char * my_packet_to_buffer(struct Packet *p)
     
     if (p->flag & DATA_PACK && p->metadata != 0) {
          //data packet with payload
-            memcpy(final_buffer, p,                              sizeof(struct Packet));
-            memcpy(final_buffer + sizeof(struct Packet) -8 , p->payload,  p->metadata);
+            memcpy(final_buffer, p, sizeof(struct Packet));
+            memcpy(final_buffer + sizeof(struct Packet) , p->payload,  p->metadata);
             
         }
     
@@ -73,12 +75,13 @@ struct Packet* construct_packet(unsigned char flag, unsigned char pktseq, unsign
     packet->sender_id = sid;
     packet->recv_id = rid;
     packet->metadata = meta;
-    packet->payload = malloc(sizeof(char) * meta);
+    packet->payload = calloc(1000, sizeof(char)); // huh
 
-    if (flag & DATA_PACK) // Only case where payload is allowed
+    if (flag & DATA_PACK && meta != 0) // Only case where payload is allowed
     {
         packet->payload = payload;
-        fprintf(stdout,"[INFO] constructing packet! meta %d \n",packet->metadata);
+
+        fprintf(stdout,"[INFO] constructing packet! meta %d %s\n",packet->metadata, packet->payload);
     }
     
     return packet;

@@ -17,7 +17,7 @@
 
 
 
-#define BUFFER_SIZE         1024
+#define BUFFER_SIZE         1016
 #define CONNECT_REQ         0x01
 #define CONNECT_TERMINATE   0x02
 #define DATA_PACK           0x04
