@@ -39,7 +39,7 @@ int main(int argc, char const *argv[])
     server_fd.sin_family = AF_INET; //can it send to IPv6 as well? does it have to
     server_fd.sin_port = htons(atoi(argv[2]));
     server_fd.sin_addr.s_addr = inet_addr(argv[1]);
-    //set_loss_probability(atof(argv[3]));
+    set_loss_probability(atof(argv[3]));
     server_fd_global = server_fd;
 
     srand(time(0));
@@ -74,7 +74,7 @@ int main(int argc, char const *argv[])
         FD_ZERO(&server_fd_set);
         FD_SET(udpSocket_fd, &server_fd_set);
 
-        struct timeval tv = {100, 0};
+        struct timeval tv = {1, 0};
         select(FD_SETSIZE , &server_fd_set, NULL, NULL, &tv);
 
         if (FD_ISSET(udpSocket_fd, &server_fd_set)) {
@@ -125,8 +125,8 @@ int main(int argc, char const *argv[])
         }
         else { // we waited too long and recevied nothing. Send packet again
             fprintf(stdout,"[INFO] We waited too long\n");
-            //rc = rdp_write_server(udpSocket_fd, ack_pack);
-              //  check_error(rc, "sendto");
+            rc = rdp_write_server(udpSocket_fd, ack_pack);
+               check_error(rc, "sendto");
         }
         
     } while (1);

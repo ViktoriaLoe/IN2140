@@ -13,7 +13,7 @@ int sequence_number = 100;
 //prints content of packet
 void print_packet(struct Packet *packet)
 {   
-    fprintf(stdout,"[INFO] \n |    id:%d %d\n |    pkt_s: %d ack: %d\n |    packet flag: %d\n |    payload size %d \n", packet->recv_id, packet->sender_id,packet->packet_seq,packet->ack_seq, packet->flag, packet->metadata);
+    fprintf(stdout,"[INFO] \n |    id:%d %d\n |    pkt_s: %d ack: %d\n |    packet flag: %d\n |    payload size %d \n", ntohs(packet->recv_id), ntohs(packet->sender_id), packet->packet_seq,packet->ack_seq, packet->flag, packet->metadata);
     if (packet->flag  & DATA_PACK && packet->metadata > 0) {
         fprintf(stdout,"[INFO] packet->flag: %d\n", packet->flag);
         //puts(packet->payload); //får minnefeil her ja
@@ -81,7 +81,7 @@ struct Packet* construct_packet(unsigned char flag, unsigned char pktseq, unsign
     {
         packet->payload = payload;
 
-        fprintf(stdout,"[INFO] constructing packet! meta %d %\n",packet->metadata);
+        fprintf(stdout,"[INFO] constructing packet! meta %d \n",packet->metadata);
     }
     
     return packet;

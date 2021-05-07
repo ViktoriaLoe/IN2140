@@ -85,7 +85,7 @@ int main(int argc, char const *argv[])
         fprintf(stdout,"\n\n[INFO] Using select and waiting\n");
 
         //listening to FD for incoming packet
-        struct timeval tv = {100, 0};
+        struct timeval tv = {1, 0};
         select(FD_SETSIZE , &readFD, NULL, NULL, &tv); 
 
         /*Getting input and reformatting it*/
@@ -119,7 +119,9 @@ int main(int argc, char const *argv[])
                 fprintf(stdout,"[INFO] Nothing to do, number_of_connections: %d\n", number_of_connections);
                 continue;
             }
-            if (new_connection->previous_packet_sent != NULL) {
+            if (new_connection != NULL && 
+            done < number_of_connections &&
+            new_connection->previous_packet_sent != NULL) {
                 fprintf(stdout,"[INFO] Sending previous packet again\n");
                 rdp_write(new_connection, new_connection->previous_packet_sent);
             }
