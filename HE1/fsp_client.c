@@ -5,6 +5,8 @@
 #include <sys/socket.h>
 #include "send_packet.h"
 #include <time.h>
+#include <arpa/inet.h>
+
 
 
 void check_error(int ret, char *msg) {
@@ -23,7 +25,7 @@ int main(int argc, char const *argv[])
     struct sockaddr_in server_fd;
     int id;
     char filename[20];
-    char input_buffer[1016];
+    char *input_buffer = calloc(BUFFER_SIZE, sizeof(char));
     FILE *filep;
 
     if (argc < 4)
@@ -134,6 +136,8 @@ int main(int argc, char const *argv[])
     //free(input->payload);
     free(input);
     free(ack_pack->payload);
+    free(input_buffer);
+    
     free(ack_pack);
     free(output_buffer_c);
     close(udpSocket_fd);

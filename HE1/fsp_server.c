@@ -74,7 +74,7 @@ int main(int argc, char const *argv[])
     check_error(rc, "bind");
 
     /* MAIN LOOP*/
-    char input[1016];
+    char *input = calloc(BUFFER_SIZE, sizeof(char));
     struct rdp_connection *new_connection;
     int done = 0;
     sleep(5);
@@ -102,7 +102,7 @@ int main(int argc, char const *argv[])
                 // fprintf(stderr,"[INFO] Buffer contains flag: %d id %d\n", input->flag, input->sender_id);
 
             if (new_connection != NULL) {
-                free(new_connection);
+                //free(new_connection);
                 continue;
             }
 

@@ -5,6 +5,8 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
+
 #include "send_packet.h"
 
 #define BUFFER_SIZE 1016
@@ -62,10 +64,7 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
     printf("WRITING\n");
     print_packet(output);
 
-    struct Packet *input = malloc(sizeof(struct Packet)+1000);
     output_buffer = my_packet_to_buffer(output);
-    buffer_to_packet(output_buffer, input);
-    fprintf(stdout,"[INFO] %s \n",input->payload);
 
     /*Sending packet with file in it*/
     rc = sendto(client->client_socketFd, output_buffer,
@@ -76,7 +75,7 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
        //else if the last packet it sent
         // send empty packe
     //free(output->payload);
-    free(output);
+   // free(output);
     free(output_buffer);
     return rc;
 }
@@ -117,7 +116,7 @@ void rdp_send_file(struct Packet *input, struct rdp_connection *current_client)
     current_client->bytes_read = read + bytes_to_read;
 
     output_packet = construct_packet(DATA_PACK, input->packet_seq, //freed in rdp_write
-                        input->ack_seq, 0, input->sender_id, 
+                        input->ack_seq, 0, ntohs(input->sender_id), 
                         bytes_to_read, output_buffer);
 
     /*Sending what is in buffer*/
@@ -126,7 +125,6 @@ void rdp_send_file(struct Packet *input, struct rdp_connection *current_client)
     rdp_write(current_client, output_packet);
     printf("Sent packet\n");
     free(output_packet);
-    free_packet(input);
     //free(input->payload);
     //free(input);
     //free(output_buffer);
@@ -145,7 +143,7 @@ int rdp_read_from_client(char *input_buffer)
 
         // finding client we're sending file to
         struct rdp_connection *current_client;
-        int index = find_connection_index(input->sender_id);
+        int index = find_connection_index(ntohs(input->sender_id));
         current_client = active_connections[index];
         current_client->packet_seq++; 
         rdp_send_file(input, current_client);
@@ -227,7 +225,7 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
     /* Initializing variables */
     int rc = 0; 
     socklen_t sockaddr_size = sizeof(struct sockaddr);
-    char input[sizeof(struct Packet)];
+    char input[BUFFER_SIZE];
 
    /* Peeking with recvfrom */ 
     rc = recvfrom(socket_fd, input, sizeof(struct Packet),
@@ -235,7 +233,7 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
 
     //Creating packets reading buffer and deserializing
     struct Packet *client_con_packet;
-    client_con_packet = construct_packet(ACK_PACK, 0, 0, 0, client_con_packet->sender_id, 0, 0);
+    client_con_packet = construct_packet(ACK_PACK, 0, 0, 0, ntohs(client_con_packet->sender_id), 0, 0);
     buffer_to_packet(input, client_con_packet);
 
     /* Checking if it is not a connection attempt*/
@@ -248,10 +246,10 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
 
     // It is a CONNECTION_REQ 
     struct Packet *output_pack;
-    output_pack            = construct_packet(CONNECTION_DEN, 0, 0, 0, client_con_packet->sender_id, 0, 0);
+    output_pack            = construct_packet(CONNECTION_DEN, 0, 0, 0, ntohs(client_con_packet->sender_id), 0, 0);
 
     /* Checking if ID is valid and if server takes more clients*/
-    if (check_valid_id(client_con_packet->sender_id) || number_of_connections >= max_connections) {
+    if (check_valid_id(ntohs(client_con_packet->sender_id)) || number_of_connections >= max_connections) {
         fprintf(stderr, "[ERROR] NOT CONENCTED %c\n", client_con_packet->flag);
 
         // Data structure for this client isnt created, so to avoid sending a lot of input to rdp_write I'm sending it from this function
@@ -262,7 +260,7 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
             return NULL;
     }
 
-    fprintf(stdout, "[SUCCESS] CONNECTED %d %d\n", client_con_packet->sender_id, client_con_packet->recv_id);
+    fprintf(stdout, "[SUCCESS] CONNECTED %d %d\n", ntohs(client_con_packet->sender_id), client_con_packet->recv_id);
 
     /*Allocating space for conneciton datastructure*/
     struct rdp_connection *client = malloc(sizeof(struct rdp_connection));
@@ -270,7 +268,7 @@ struct rdp_connection* rdp_accept(int socket_fd, struct sockaddr_in addr_cli)
     // Initializing datastructure move this into a function
     active_connections[number_of_connections] = client; // Adding new connection to global array
     client->ip_adress = addr_cli;
-    client->connection_id = client_con_packet->sender_id;
+    client->connection_id = ntohs(client_con_packet->sender_id);
     client->packet_seq = 0;
     client->bytes_read = 0;
     client->client_socketFd = socket_fd;
