@@ -1,4 +1,4 @@
-
+I didn't have time to clean up and implement everything. After being stuck on memory issues for several days.
 
 
 The **NewFSP server** description reads "It has one main loop, in which it ... 2.tries to deliver the next packet (or the final empty packet) to each connected RDP client," 
