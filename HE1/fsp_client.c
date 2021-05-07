@@ -74,7 +74,7 @@ int main(int argc, char const *argv[])
         FD_ZERO(&server_fd_set);
         FD_SET(udpSocket_fd, &server_fd_set);
 
-        struct timeval tv = {100, 0};
+        struct timeval tv = {1000, 0};
         select(FD_SETSIZE + 1, &server_fd_set, NULL, NULL, &tv);
 
         if (FD_ISSET(udpSocket_fd, &server_fd_set)) {

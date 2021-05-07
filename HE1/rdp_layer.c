@@ -33,7 +33,7 @@ int rdp_write_server(int socket_fd, struct Packet *output)
 {
     int rc = 0;
     printf("WRITING\n");
-    output_buffer_c = my_packet_to_buffer(output);
+    my_packet_to_buffer(output, output_buffer_c);
     rc = sendto(socket_fd,                                  /*socket*/
                 output_buffer_c,                             /*message*/
                 sizeof(output_buffer_c),                          /*amount of bytes*/
@@ -49,7 +49,7 @@ int rdp_write(struct rdp_connection *client, struct Packet *output)
     int rc = 0;
 
     printf("WRITING\n");
-    output_buffer = my_packet_to_buffer(output);
+    my_packet_to_buffer(output, output_buffer);
 
     /*Sending packet with file in it*/
     rc = sendto(client->client_socketFd, output_buffer,
@@ -119,6 +119,7 @@ int rdp_read_from_client(char *input_buffer)
         int index = find_connection_index(input->sender_id);
         current_client = active_connections[index];
         
+        current_client->packet_seq++; //previous packet was recevied
         rdp_send_file(input, current_client);
     }
 
